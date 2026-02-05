@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<section>
+    <h2>Bienvenue {{ user_email }}</h2>
+    {% if is_admin %}
+        <p>Vous êtes connecté en tant qu'administrateur.</p>
+        <ul>
+            <li><a href="{{ url_for('products_list') }}">Gérer les produits</a></li>
+            <li><a href="{{ url_for('customers_list') }}">Gérer les clients</a></li>
+        </ul>
+    {% else %}
+        <p>Vous êtes connecté en tant que client. Vous pouvez consulter les produits.</p>
+        <a href="{{ url_for('products_list') }}" class="btn">Voir les produits</a>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+
+{% block content %}
+<section>
+    <h2>Liste des clients</h2>
+
+    <form method="get" class="filter-form">
+        <input type="text" name="name" placeholder="Nom / prénom">
+        <input type="text" name="email" placeholder="Email">
+        <input type="text" name="city" placeholder="Ville">
+        <button type="submit">Filtrer</button>
+    </form>
+
+    {% if is_admin %}
+    <h3>Ajouter un client</h3>
+    <form method="post" action="{{ url_for('customers_add') }}" class="entity-form">
+        <input type="text" name="first_name" placeholder="Prénom" required>
+        <input type="text" name="last_name" placeholder="Nom" required>
+        <input type="email" name="email" placeholder="E-mail" required>
+        <input type="password" name="password" placeholder="Mot de passe" required>
+        <input type="text" name="phone" placeholder="Téléphone">
+        <input type="text" name="zip_code_prefix" placeholder="Code postal" required>
+        <input type="text" name="city" placeholder="Ville" required>
+        <input type="text" name="state" placeholder="Région" required>
+        <input type="text" name="address_line1" placeholder="Adresse ligne 1">
+        <input type="text" name="address_line2" placeholder="Adresse ligne 2">
+        <label>
+            Admin ?
+            <select name="is_admin">
+                <option value="0" selected>Non</option>
+                <option value="1">Oui</option>
+            </select>
+        </label>
+        <button type="submit">Ajouter</button>
+    </form>
+    {% endif %}
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Ville</th><th>Admin</th>
+            {% if is_admin %}<th>Actions</th>{% endif %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for c in customers %}
+            <tr>
+                <td>{{ c.customer_id }}</td>
+                <td>{{ c.first_name }} {{ c.last_name }}</td>
+                <td>{{ c.email }}</td>
+                <td>{{ c.phone }}</td>
+                <td>{{ c.city }}</td>
+                <td>{{ "Oui" if c.is_admin == 1 else "Non" }}</td>
+                {% if is_admin %}
+                <td>
+                    <form method="post"
+                          action="{{ url_for('customers_delete', customer_id=c.customer_id) }}"
+                          onsubmit="return confirm('Supprimer ce client ?');">
+                        <button type="submit">Supprimer</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
