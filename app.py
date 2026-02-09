@@ -65,6 +65,12 @@ def dashboard():
         is_admin=current_user_is_admin()
     )
 
+@app.context_processor
+def inject_user_role():
+    return {
+        "is_admin": magasin.check_is_admin(magasin.log_id),
+        "user_email": magasin.log_id,
+    }
 
 # ---------- Produits ----------
 
@@ -81,19 +87,17 @@ def products_list():
     # Point de départ : tous les produits
     df = magasin.products
 
-    # Si un filtre est renseigné, on utilise la méthode dédiée
     if name:
-        df = magasin.filter_products_name(name)
+        df = magasin.filter_products_name(df, name)
 
     if category:
-        df = magasin.filter_products_category(category)
+        df = magasin.filter_products_category(df, category)
 
-    if min_price and max_price:
-        try:
-            df = magasin.filter_products_price(min_price, max_price)
-        except ValueError:
-            flash("Prix invalides.", "error")
-            # on garde df tel quel si erreur de conversion
+    df = magasin.filter_products_price(
+        df,
+        min_price if min_price != "" else None,
+        max_price if max_price != "" else None
+    )
 
     products = df.to_dict(orient="records")
 
@@ -157,13 +161,13 @@ def customers_list():
     df = magasin.customers
 
     if name:
-        df = magasin.filter_customer_name(name)
+        df = magasin.filter_customer_name(df, name)
 
     if email:
-        df = magasin.filter_customer_email(email)
+        df = magasin.filter_customer_email(df, email)
 
     if city:
-        df = magasin.filter_customer_city(city)
+        df = magasin.filter_customer_city(df, city)
 
     customers = df.to_dict(orient="records")
 

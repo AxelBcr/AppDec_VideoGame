@@ -5,14 +5,22 @@
     <title>{% block title %}Magasin Jeux Vidéo{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="{% if is_admin %}admin-mode{% else %}client-mode{% endif %}">
 <header>
-    <h1>Magasin Jeux Vidéo</h1>
+    <h1>
+        {% if is_admin %}
+            Magasin Jeux Vidéo – Panneau d’administration
+        {% else %}
+            Magasin Jeux Vidéo – Espace client
+        {% endif %}
+    </h1>
     <nav>
         {% if session.user_email %}
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
             <a href="{{ url_for('products_list') }}">Produits</a>
-            <a href="{{ url_for('customers_list') }}">Clients</a>
+            {% if is_admin %}
+                <a href="{{ url_for('customers_list') }}">Clients</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}">Déconnexion</a>
         {% else %}
             <a href="{{ url_for('login') }}">Connexion</a>
