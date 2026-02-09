@@ -171,7 +171,9 @@ class Magasin:
                     product_price, product_weight_g, product_description):
         """Ajoute un produit au catalogue avec tests de base."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         # Validations
         self._check_non_empty_string(product_name, "Nom du produit")
@@ -214,7 +216,9 @@ class Magasin:
     def del_product(self, product_id):
         """Supprime un produit s'il existe."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         self._check_non_empty_string(product_id, "product_id")
 
@@ -245,7 +249,9 @@ class Magasin:
                         new_product_description=None):
         """Modifie un produit ; seuls les champs non None sont mis à jour."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         self._check_non_empty_string(product_id, "product_id")
 
@@ -323,25 +329,48 @@ class Magasin:
 
     #Filtres produits
 
-    def filter_products_id(self, product_id):
-        return self.products[self.products["product_id"] == product_id]
+    def filter_products_id(self, df, product_id):
+        """Filtre par identifiant exact sur le DataFrame fourni."""
+        return df[df["product_id"] == product_id]
 
-    def filter_products_name(self, product_name):
-        return self.products[self.products["product_name"].str.contains(product_name, case=False)]
+    def filter_products_name(self, df, product_name):
+        """Filtre les produits par leur nom (fragment, insensible à la casse) sur le DataFrame fourni."""
 
-    def filter_products_price(self, min_price, max_price):
-        min_p = float(min_price)
-        max_p = float(max_price)
-        return self.products[
-            (self.products["product_price"] >= min_p)
-            & (self.products["product_price"] <= max_p)
-        ]
+        if not isinstance(product_name, str) or product_name.strip() == "":
+            print("Nom de produit vide, aucun filtre appliqué.")
+            return df
 
-    def filter_products_category(self, product_category):
-        return self.products[self.products["product_category"] == product_category]
+        pattern = product_name.strip()
+        return df[df["product_name"].str.contains(pattern, case=False, na=False)]
 
+    def filter_products_price(self, df, min_price=None, max_price=None):
+        """Filtre les produits entre min_price et max_price (chacun optionnel) sur le DataFrame fourni."""
 
+        # Gestion du min
+        if min_price is not None:
+            s_min = str(min_price).strip()
+            if s_min != "":
+                min_p = float(s_min)
+                df = df[df["product_price"] >= min_p]
 
+        # Gestion du max
+        if max_price is not None:
+            s_max = str(max_price).strip()
+            if s_max != "":
+                max_p = float(s_max)
+                df = df[df["product_price"] <= max_p]
+
+        return df
+
+    def filter_products_category(self, df, product_category):
+        """Filtre les produits par leur catégorie (fragment, insensible à la casse) sur le DataFrame fourni."""
+
+        if not isinstance(product_category, str) or product_category.strip() == "":
+            print("Catégorie vide, aucun filtre appliqué.")
+            return df
+
+        pattern = product_category.strip()
+        return df[df["product_category"].str.contains(pattern, case=False, na=False)]
 
     #  Opérations clients
 
@@ -351,7 +380,9 @@ class Magasin:
                      is_admin=0):
         """Ajoute un client dans la table customers."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         # Validations simples
         self._check_non_empty_string(first_name, "Prénom")
@@ -410,7 +441,9 @@ class Magasin:
                         is_admin=None):
         """Modifie un client existant (seuls les champs non None sont mis à jour)."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         self._check_non_empty_string(customer_id, "customer_id")
 
@@ -494,7 +527,9 @@ class Magasin:
     def del_customer(self, customer_id):
         """Supprime un client s'il existe (si contraintes FK le permettent)."""
 
-        
+        if not self.check_is_admin(self.log_id):
+            print("Vous n'êtes pas administrateur")
+            return
 
         self._check_non_empty_string(customer_id, "customer_id")
 
@@ -522,46 +557,39 @@ class Magasin:
 
     # Filtre sur clients
 
-    def filter_customer_name(self, name):
-        " Filtre les clients par leur nom (partie prénom ou nom, insensible à la casse) "
-
-        
+    def filter_customer_name(self, df, name):
+        """Filtre les clients par leur nom (partie prénom ou nom, insensible à la casse) sur le DataFrame fourni."""
 
         if not isinstance(name, str) or name.strip() == "":
             print("Nom vide, aucun filtre appliqué.")
-            return self.customers
+            return df
 
         pattern = name.strip()
         mask = (
-            self.customers["first_name"].str.contains(pattern, case=False, na=False)
-            | self.customers["last_name"].str.contains(pattern, case=False, na=False)
+                df["first_name"].str.contains(pattern, case=False, na=False)
+                | df["last_name"].str.contains(pattern, case=False, na=False)
         )
-        return self.customers[mask]
+        return df[mask]
 
-
-    def filter_customer_email(self, email):
-        " Filtre les clients par leur email (exact ou fragment) "
+    def filter_customer_email(self, df, email):
+        """Filtre les clients par leur email (fragment) sur le DataFrame fourni."""
 
         if not isinstance(email, str) or email.strip() == "":
             print("Email vide, aucun filtre appliqué.")
-            return self.customers
+            return df
 
         pattern = email.strip()
-        # pour recherche exacte, remplacer par == pattern
-        return self.customers[self.customers["email"].str.contains(pattern, case=False, na=False)]
+        return df[df["email"].str.contains(pattern, case=False, na=False)]
 
-
-    def filter_customer_city(self, city):
-        " Filtre les clients par leur lieu d'habitation (ville, insensible à la casse) "
+    def filter_customer_city(self, df, city):
+        """Filtre les clients par leur lieu d'habitation (ville, fragment, insensible à la casse) sur le DataFrame fourni."""
 
         if not isinstance(city, str) or city.strip() == "":
             print("Ville vide, aucun filtre appliqué.")
-            return self.customers
+            return df
 
         pattern = city.strip()
-        return self.customers[self.customers["city"].str.contains(pattern, case=False, na=False)]
-
-
+        return df[df["city"].str.contains(pattern, case=False, na=False)]
 
     #Connexion
 
@@ -569,3 +597,5 @@ class Magasin:
         if self.connection.is_connected():
             self.connection.close()
             print("Connexion fermée.")
+
+magasin = Magasin()
