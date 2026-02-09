@@ -32,7 +32,7 @@
         <thead>
         <tr>
             <th>ID</th><th>Nom</th><th>Catégorie</th><th>Plateforme</th>
-            <th>Prix</th><th>ESRB</th>
+            <th>Prix</th><th>ESRB</th><th>Image</th>
             {% if is_admin %}<th>Actions</th>{% endif %}
         </tr>
         </thead>
@@ -45,6 +45,8 @@
                 <td>{{ p.product_platform }}</td>
                 <td>{{ "%.2f"|format(p.product_price) }}</td>
                 <td>{{ p.product_esrb_rating }}</td>
+                <td><a href="{{ p.product_image }}" target="_blank">Voir images</a></td>
+
                 {% if is_admin %}
                 <td>
                     <a href="{{ url_for('product_edit', product_id=p.product_id) }}" class="btn-edit">Modifier</a>

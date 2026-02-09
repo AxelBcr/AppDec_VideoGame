@@ -12,6 +12,8 @@ import mysql.connector
 from mysql.connector import errorcode
 from datetime import datetime
 
+from urllib.parse import urlencode
+
 import warnings
 warnings.filterwarnings("ignore")
 # %% [markdown]
@@ -106,8 +108,9 @@ class Magasin:
 
     @staticmethod
     def _check_non_empty_string(value, field_name):
-        if not isinstance(value, str) or value.strip() == "":
+        if not isinstance(value, str) or value.strip() == "" or value.strip() is None:
             raise ValueError(f"{field_name} ne doit pas être vide.")
+        return field_name, value
 
     @staticmethod
     def _check_positive_number(value, field_name):
@@ -185,13 +188,17 @@ class Magasin:
         product_price = self._check_positive_number(product_price, "Prix")
         product_weight_g = self._check_positive_number(product_weight_g, "Poids (g)")
 
+        # Générer l'URL Google Images à partir du nom du produit
+        params = {"tbm": "isch", "q": product_name}
+        product_image_url = "https://www.google.com/search?" + urlencode(params)
+
         cursor = self.connection.cursor()
         query = """
             INSERT INTO products
             (product_id, product_name, product_category, product_platform,
              product_esrb_rating, product_release_year, product_price,
-             product_weight_g, product_description)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+             product_weight_g, product_description, product_image)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         product_id = "PROD_" + "{:05d}".format(self.products.shape[0] + 1)
@@ -201,7 +208,7 @@ class Magasin:
                 product_id, product_name.strip(), product_category.strip(),
                 product_platform.strip(), product_esrb_rating.strip(),
                 int(product_release_year), float(product_price),
-                int(product_weight_g), product_description
+                int(product_weight_g), product_description, product_image_url
             ))
             self.connection.commit()
             print(f"Produit {product_id} ajouté avec succès.")
@@ -211,6 +218,7 @@ class Magasin:
         finally:
             cursor.close()
 
+        # Recharger la table products après insertion
         self.products = pd.read_sql("SELECT * FROM products", self.connection)
 
     def del_product(self, product_id):
@@ -263,7 +271,7 @@ class Magasin:
         fields = []
         values = []
 
-        if new_product_name is not None:
+        if new_product_name is not None or new_product_name != "":
             self._check_non_empty_string(new_product_name, "Nom du produit")
             fields.append("product_name = %s")
             values.append(new_product_name.strip())
@@ -288,7 +296,7 @@ class Magasin:
             fields.append("product_release_year = %s")
             values.append(int(year))
 
-        if new_product_price is not None:
+        if new_product_price is not None or new_product_price != "":
             price = self._check_positive_number(new_product_price, "Prix")
             fields.append("product_price = %s")
             values.append(float(price))
