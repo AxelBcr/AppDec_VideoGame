@@ -146,6 +146,57 @@ def products_delete(product_id):
 
     return redirect(url_for("products_list"))
 
+# ---------- Formulaire modification produit ----------
+
+@app.route("/products/edit/<product_id>", methods=["GET", "POST"])
+def product_edit(product_id):
+    if "user_email" not in session:
+        return redirect(url_for("login"))
+
+    if not current_user_is_admin():
+        flash("Action réservée aux administrateurs.", "error")
+        return redirect(url_for("products_list"))
+
+    # Récupérer le produit courant
+    df = magasin.filter_products_id(magasin.products, product_id)
+    if df.empty:
+        flash("Produit introuvable.", "error")
+        return redirect(url_for("products_list"))
+
+    product = df.iloc[0].to_dict()
+
+    if request.method == "POST":
+        # On récupère les valeurs du formulaire.
+        # Si le champ est vide, on laisse None pour ne pas le modifier.
+        name = request.form.get("name", "").strip() or None
+        category = request.form.get("category", "").strip() or None
+        platform = request.form.get("platform", "").strip() or None
+        esrb = request.form.get("esrb", "").strip() or None
+        year = request.form.get("year", "").strip() or None
+        price = request.form.get("price", "").strip() or None
+        weight = request.form.get("weight", "").strip() or None
+        description = request.form.get("description", "").strip() or None
+
+        try:
+            magasin.modify_products(
+                product_id,
+                new_product_name=name,
+                new_product_category=category,
+                new_product_platform=platform,
+                new_product_esrb_rating=esrb,
+                new_product_release_year=year,
+                new_product_price=price,
+                new_product_weight_g=weight,
+                new_product_description=description,
+            )
+            flash("Produit modifié avec succès.", "success")
+            return redirect(url_for("products_list"))
+        except ValueError as e:
+            flash(str(e), "error")
+
+    # GET : afficher le formulaire pré-rempli
+    return render_template("edit_product.html", product=product)
+
 
 # ---------- Clients ----------
 
@@ -222,6 +273,59 @@ def customers_delete(customer_id):
 
     return redirect(url_for("customers_list"))
 
+# ---------- Formulaire modification client ----------
+
+@app.route("/customers/edit/<customer_id>", methods=["GET", "POST"])
+def customer_edit(customer_id):
+    if "user_email" not in session:
+        return redirect(url_for("login"))
+
+    if not current_user_is_admin():
+        flash("Action réservée aux administrateurs.", "error")
+        return redirect(url_for("customers_list"))
+
+    df = magasin.customers[magasin.customers["customer_id"] == customer_id]
+    if df.empty:
+        flash("Client introuvable.", "error")
+        return redirect(url_for("customers_list"))
+
+    customer = df.iloc[0].to_dict()
+
+    if request.method == "POST":
+        first = request.form.get("first_name", "").strip() or None
+        last = request.form.get("last_name", "").strip() or None
+        email = request.form.get("email", "").strip() or None
+        pwd = request.form.get("password", "").strip() or None
+        phone = request.form.get("phone", "").strip() or None
+        zip_code = request.form.get("zip_code_prefix", "").strip() or None
+        city = request.form.get("city", "").strip() or None
+        state = request.form.get("state", "").strip() or None
+        addr1 = request.form.get("address_line1", "").strip() or None
+        addr2 = request.form.get("address_line2", "").strip() or None
+        is_admin_flag = request.form.get("is_admin", "").strip()
+        is_admin_val = int(is_admin_flag) if is_admin_flag != "" else None
+
+        try:
+            magasin.modify_customer(
+                customer_id,
+                first_name=first,
+                last_name=last,
+                email=email,
+                password=pwd,
+                phone=phone,
+                zip_code_prefix=zip_code,
+                city=city,
+                state=state,
+                address_line1=addr1,
+                address_line2=addr2,
+                is_admin=is_admin_val,
+            )
+            flash("Client modifié avec succès.", "success")
+            return redirect(url_for("customers_list"))
+        except ValueError as e:
+            flash(str(e), "error")
+
+    return render_template("edit_customer.html", customer=customer)
 
 if __name__ == "__main__":
     app.run(debug=True)

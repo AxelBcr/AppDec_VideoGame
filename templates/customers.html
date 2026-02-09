@@ -54,9 +54,11 @@
                 <td>{{ "Oui" if c.is_admin == 1 else "Non" }}</td>
                 {% if is_admin %}
                 <td>
+                    <a href="{{ url_for('customer_edit', customer_id=c.customer_id) }}" class="btn-edit">Modifier</a>
                     <form method="post"
                           action="{{ url_for('customers_delete', customer_id=c.customer_id) }}"
-                          onsubmit="return confirm('Supprimer ce client ?');">
+                          onsubmit="return confirm('Supprimer ce client ?');"
+                          style="display:inline;">
                         <button type="submit">Supprimer</button>
                     </form>
                 </td>

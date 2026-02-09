@@ -47,9 +47,11 @@
                 <td>{{ p.product_esrb_rating }}</td>
                 {% if is_admin %}
                 <td>
+                    <a href="{{ url_for('product_edit', product_id=p.product_id) }}" class="btn-edit">Modifier</a>
                     <form method="post"
                           action="{{ url_for('products_delete', product_id=p.product_id) }}"
-                          onsubmit="return confirm('Supprimer ce produit ?');">
+                          onsubmit="return confirm('Supprimer ce produit ?');"
+                          style="display:inline;">
                         <button type="submit">Supprimer</button>
                     </form>
                 </td>
