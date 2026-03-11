@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Commande {{ order.order_id }}{% endblock %}
+
+{% block content %}
+<section>
+    <h2>Commande {{ order.order_id }}</h2>
+
+    <div class="order-info-grid">
+        <div class="order-info-card">
+            <h3>Informations</h3>
+            <p><strong>Date :</strong> {{ order.order_purchase_timestamp }}</p>
+            <p><strong>Statut :</strong>
+                <span class="status-badge status-{{ order.order_status }}">{{ order.order_status }}</span>
+            </p>
+            {% if order.order_approved_at %}
+            <p><strong>Approuvée :</strong> {{ order.order_approved_at }}</p>
+            {% endif %}
+            {% if order.order_delivered_carrier_date %}
+            <p><strong>Expédiée :</strong> {{ order.order_delivered_carrier_date }}</p>
+            {% endif %}
+            {% if order.order_delivered_customer_date %}
+            <p><strong>Livrée :</strong> {{ order.order_delivered_customer_date }}</p>
+            {% endif %}
+        </div>
+
+        {% if is_admin %}
+        <div class="order-info-card">
+            <h3>Changer le statut</h3>
+            <form method="post" action="{{ url_for('order_update_status', order_id=order.order_id) }}" class="status-form">
+                <select name="status">
+                    {% for s in ['created', 'approved', 'shipped', 'delivered', 'cancelled'] %}
+                    <option value="{{ s }}" {{ 'selected' if order.order_status == s }}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Mettre à jour</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if not is_admin and order.order_status in ['created', 'approved'] %}
+        <div class="order-info-card">
+            <h3>Annuler la commande</h3>
+            <form method="post" action="{{ url_for('order_cancel', order_id=order.order_id) }}"
+                  onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette commande ?');">
+                <button type="submit" class="btn-danger">Annuler la commande</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <h3>Articles commandés</h3>
+    {% if items %}
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Produit</th>
+            <th>Plateforme</th>
+            <th>Prix unitaire</th>
+            <th>Quantité</th>
+            <th>Frais de port</th>
+            <th>Total ligne</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.product_name }}</td>
+            <td>{{ item.product_platform }}</td>
+            <td>{{ "%.2f"|format(item.price) }} €</td>
+            <td>{{ item.quantity | int }}</td>
+            <td>{{ "%.2f"|format(item.freight_value) }} €</td>
+            <td>{{ "%.2f"|format(item.line_total) }} €</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p class="order-total">Total : {{ "%.2f"|format(total) }} €</p>
+    {% else %}
+    <p>Aucun article dans cette commande.</p>
+    {% endif %}
+
+    <a href="{{ url_for('orders_list') }}" class="btn-back">← Retour aux commandes</a>
+</section>
+{% endblock %}
