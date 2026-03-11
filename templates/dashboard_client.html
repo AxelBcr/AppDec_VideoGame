@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Accueil – GameStore{% endblock %}
+
+{% block content %}
+<section class="store-hero">
+    <div class="store-hero-content">
+        <h1>Bienvenue{% if user_email %}, {{ user_email }}{% endif %} !</h1>
+        <p>Retrouvez vos jeux vidéo favoris, comparez les prix et découvrez nos nouveautés.</p>
+        <div class="store-hero-actions">
+            <a href="{{ url_for('products_list') }}" class="btn-primary">Voir la boutique</a>
+        </div>
+    </div>
+</section>
+
+<section class="store-section">
+    <h2>Nos catégories populaires</h2>
+    <div class="category-grid">
+        <div class="category-card">
+            <h3>Action / Aventure</h3>
+            <p>Les titres les plus dynamiques, de l'open world aux FPS nerveux.</p>
+        </div>
+        <div class="category-card">
+            <h3>Jeux de sport</h3>
+            <p>Football, basket, courses… vivez l'intensité des compétitions.</p>
+        </div>
+        <div class="category-card">
+            <h3>RPG & Stratégie</h3>
+            <p>Plongez dans des mondes immersifs et construisez votre aventure.</p>
+        </div>
+    </div>
+</section>
+
+<section class="store-section">
+    <h2>Comment ça marche ?</h2>
+    <div class="how-grid">
+        <div class="how-step">
+            <span class="how-step-number">1</span>
+            <h3>Parcourez le catalogue</h3>
+            <p>Filtrez les jeux par nom, catégorie ou prix depuis la boutique.</p>
+        </div>
+        <div class="how-step">
+            <span class="how-step-number">2</span>
+            <h3>Ajoutez au panier</h3>
+            <p>Sélectionnez vos jeux et choisissez la quantité souhaitée.</p>
+        </div>
+        <div class="how-step">
+            <span class="how-step-number">3</span>
+            <h3>Passez commande</h3>
+            <p>Validez votre panier et suivez vos commandes depuis votre espace.</p>
+        </div>
+    </div>
+</section>
+
+<section class="store-section">
+    <h2>Accès rapide</h2>
+    <div class="quick-links">
+        <a href="{{ url_for('products_list') }}" class="quick-link-card">
+            <h3>🎮 Boutique</h3>
+            <p>Parcourir tous les jeux disponibles.</p>
+        </a>
+        <a href="{{ url_for('cart_view') }}" class="quick-link-card">
+            <h3>🛒 Mon panier</h3>
+            <p>Voir les articles ajoutés.</p>
+        </a>
+        <a href="{{ url_for('orders_list') }}" class="quick-link-card">
+            <h3>📦 Mes commandes</h3>
+            <p>Suivre mes achats et leur statut.</p>
+        </a>
+    </div>
+</section>
+{% endblock %}

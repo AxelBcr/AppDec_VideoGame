@@ -1,39 +1,43 @@
 {% extends "base.html" %}
-{% block title %}Clients{% endblock %}
+{% block title %}Gestion des clients{% endblock %}
 
 {% block content %}
 <section>
     <h2>Liste des clients</h2>
 
-    <form method="get" class="filter-form">
-        <input type="text" name="name" placeholder="Nom / prénom">
-        <input type="text" name="email" placeholder="Email">
-        <input type="text" name="city" placeholder="Ville">
+    <form method="get" class="filter-form filter-form-inline">
+        <input type="text" name="name" placeholder="Nom / prénom"
+               value="{{ request.args.get('name', '') }}">
+        <input type="text" name="email" placeholder="Email"
+               value="{{ request.args.get('email', '') }}">
+        <input type="text" name="city" placeholder="Ville"
+               value="{{ request.args.get('city', '') }}">
         <button type="submit">Filtrer</button>
     </form>
 
     {% if is_admin %}
-    <h3>Ajouter un client</h3>
-    <form method="post" action="{{ url_for('customers_add') }}" class="entity-form">
-        <input type="text" name="first_name" placeholder="Prénom" required>
-        <input type="text" name="last_name" placeholder="Nom" required>
-        <input type="email" name="email" placeholder="E-mail" required>
-        <input type="password" name="password" placeholder="Mot de passe" required>
-        <input type="text" name="phone" placeholder="Téléphone">
-        <input type="text" name="zip_code_prefix" placeholder="Code postal" required>
-        <input type="text" name="city" placeholder="Ville" required>
-        <input type="text" name="state" placeholder="Région" required>
-        <input type="text" name="address_line1" placeholder="Adresse ligne 1">
-        <input type="text" name="address_line2" placeholder="Adresse ligne 2">
-        <label>
-            Admin ?
-            <select name="is_admin">
-                <option value="0" selected>Non</option>
-                <option value="1">Oui</option>
-            </select>
-        </label>
-        <button type="submit">Ajouter</button>
-    </form>
+    <details class="add-form-section">
+        <summary><h3>+ Ajouter un client</h3></summary>
+        <form method="post" action="{{ url_for('customers_add') }}" class="entity-form">
+            <label>Prénom <input type="text" name="first_name" required></label>
+            <label>Nom <input type="text" name="last_name" required></label>
+            <label>E-mail <input type="email" name="email" required></label>
+            <label>Mot de passe <input type="password" name="password" required autocomplete="new-password"></label>
+            <label>Téléphone <input type="text" name="phone"></label>
+            <label>Code postal <input type="text" name="zip_code_prefix" required></label>
+            <label>Ville <input type="text" name="city" required></label>
+            <label>Région <input type="text" name="state" required></label>
+            <label>Adresse ligne 1 <input type="text" name="address_line1"></label>
+            <label>Adresse ligne 2 <input type="text" name="address_line2"></label>
+            <label>Admin ?
+                <select name="is_admin">
+                    <option value="0" selected>Non</option>
+                    <option value="1">Oui</option>
+                </select>
+            </label>
+            <button type="submit">Ajouter</button>
+        </form>
+    </details>
     {% endif %}
 
     <table class="data-table">
@@ -53,13 +57,13 @@
                 <td>{{ c.city }}</td>
                 <td>{{ "Oui" if c.is_admin == 1 else "Non" }}</td>
                 {% if is_admin %}
-                <td>
+                <td class="actions-cell">
                     <a href="{{ url_for('customer_edit', customer_id=c.customer_id) }}" class="btn-edit">Modifier</a>
                     <form method="post"
                           action="{{ url_for('customers_delete', customer_id=c.customer_id) }}"
                           onsubmit="return confirm('Supprimer ce client ?');"
                           style="display:inline;">
-                        <button type="submit">Supprimer</button>
+                        <button type="submit" class="btn-danger-sm">Supprimer</button>
                     </form>
                 </td>
                 {% endif %}

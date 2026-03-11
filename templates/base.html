@@ -2,26 +2,36 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Magasin Jeux Vidéo{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="{% if is_admin %}admin-mode{% else %}client-mode{% endif %}">
+
 <header>
-    <h1>
-        {% if is_admin %}
-            Magasin Jeux Vidéo – Panneau d’administration
-        {% else %}
-            Magasin Jeux Vidéo – Espace client
-        {% endif %}
-    </h1>
+    <div class="header-brand">
+        <a href="{{ url_for('dashboard') }}">
+            <h1>🎮 GameStore</h1>
+        </a>
+    </div>
     <nav>
         {% if session.user_email %}
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
             <a href="{{ url_for('products_list') }}">Produits</a>
+
+            {% if not is_admin %}
+                <a href="{{ url_for('cart_view') }}">🛒 Panier</a>
+                <a href="{{ url_for('orders_list') }}">Mes commandes</a>
+            {% endif %}
+
             {% if is_admin %}
                 <a href="{{ url_for('customers_list') }}">Clients</a>
+                <a href="{{ url_for('orders_list') }}">Commandes</a>
+                <a href="{{ url_for('stock_list') }}">Stock</a>
             {% endif %}
-            <a href="{{ url_for('logout') }}">Déconnexion</a>
+
+            <span class="nav-user">{{ user_email }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Déconnexion</a>
         {% else %}
             <a href="{{ url_for('login') }}">Connexion</a>
         {% endif %}
@@ -31,11 +41,11 @@
 <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <ul class="flash-messages">
+        <div class="flash-container">
             {% for category, message in messages %}
-                <li class="flash {{ category }}">{{ message }}</li>
+                <div class="flash {{ category }}">{{ message }}</div>
             {% endfor %}
-        </ul>
+        </div>
     {% endif %}
     {% endwith %}
 
@@ -43,7 +53,7 @@
 </main>
 
 <footer>
-    <p>&copy; 2026 Magasin Jeux Vidéo</p>
+    <p>&copy; 2025-2026 GameStore – Projet UCO</p>
 </footer>
 </body>
 </html>

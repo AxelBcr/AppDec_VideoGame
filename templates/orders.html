@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Mes commandes{% endblock %}
+
+{% block content %}
+<section class="store-section">
+    <h1>Mes commandes</h1>
+
+    {% if not orders %}
+        <p>Vous n'avez encore passé aucune commande.</p>
+        <p><a href="{{ url_for('products_list') }}" class="btn-primary">Voir la boutique</a></p>
+    {% else %}
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Commande</th>
+            <th>Date d'achat</th>
+            <th>Statut</th>
+            <th>Total</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for o in orders %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('order_detail', order_id=o.order_id) }}">{{ o.order_id }}</a>
+                </td>
+                <td>{{ o.order_purchase_timestamp }}</td>
+                <td><span class="status-badge status-{{ o.order_status }}">{{ o.order_status }}</span></td>
+                <td>{{ "%.2f"|format(o.total_price) }} €</td>
+                <td>
+                    <a href="{{ url_for('order_detail', order_id=o.order_id) }}" class="btn-edit">Détails</a>
+                    {% if o.order_status in ['created', 'approved'] %}
+                    <form method="post"
+                          action="{{ url_for('order_cancel', order_id=o.order_id) }}"
+                          onsubmit="return confirm('Annuler cette commande ?');"
+                          style="display:inline;">
+                        <button type="submit" class="btn-danger-sm">Annuler</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</section>
+{% endblock %}

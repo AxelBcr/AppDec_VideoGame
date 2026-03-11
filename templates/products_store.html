@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Boutique{% endblock %}
+
+{% block content %}
+<section class="store-hero">
+    <div class="store-hero-content">
+        <h1>Boutique</h1>
+        <p>Parcourez notre sélection de jeux vidéo.</p>
+        <div class="store-hero-actions">
+            <a href="{{ url_for('cart_view') }}" class="btn-primary">Voir mon panier</a>
+        </div>
+    </div>
+</section>
+
+<section class="store-filters">
+    <form method="get" class="filter-form">
+        <input type="text" name="name" placeholder="Rechercher un jeu"
+               value="{{ request.args.get('name', '') }}">
+        <input type="text" name="category" placeholder="Catégorie"
+               value="{{ request.args.get('category', '') }}">
+        <input type="text" name="min_price" placeholder="Prix min"
+               value="{{ request.args.get('min_price', '') }}">
+        <input type="text" name="max_price" placeholder="Prix max"
+               value="{{ request.args.get('max_price', '') }}">
+        <button type="submit">Filtrer</button>
+    </form>
+</section>
+
+<section class="store-grid">
+    {% if products %}
+        {% for p in products %}
+        <article class="product-card">
+            {% if p.product_image %}
+            <div class="product-image">
+                <img src="{{ p.product_image }}" alt="{{ p.product_name }}">
+            </div>
+            {% endif %}
+            <div class="product-body">
+                <h2>{{ p.product_name }}</h2>
+                <p class="product-platform">{{ p.product_platform }}</p>
+                <p class="product-category">{{ p.product_category }}</p>
+                <p class="product-price">{{ "%.2f"|format(p.product_price) }} €</p>
+
+                {% if p.product_description %}
+                <p class="product-description">{{ p.product_description }}</p>
+                {% endif %}
+
+                <p class="product-esrb">PEGI / ESRB : {{ p.product_esrb_rating }}</p>
+
+                <form method="post"
+                      action="{{ url_for('cart_add', product_id=p.product_id) }}"
+                      class="add-to-cart-form">
+                    <label>
+                        Qté
+                        <input type="number" name="quantity" value="1" min="1" style="width:60px;">
+                    </label>
+                    <button class="btn-primary" type="submit">Ajouter au panier</button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    {% else %}
+        <p>Aucun produit ne correspond à votre recherche.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,18 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard Admin{% endblock %}
 
 {% block content %}
-<section>
-    <h2>Bienvenue {{ user_email }}</h2>
-    {% if is_admin %}
-        <p>Vous êtes connecté en tant qu'administrateur.</p>
-        <ul>
-            <li><a href="{{ url_for('products_list') }}">Gérer les produits</a></li>
-            <li><a href="{{ url_for('customers_list') }}">Gérer les clients</a></li>
-        </ul>
-    {% else %}
-        <p>Vous êtes connecté en tant que client. Vous pouvez consulter les produits.</p>
-        <a href="{{ url_for('products_list') }}" class="btn">Voir les produits</a>
-    {% endif %}
+<section class="dashboard-header">
+    <h2>Bienvenue, {{ user_email }}</h2>
+    <p class="subtitle">Panneau d'administration</p>
+</section>
+
+<section class="kpi-grid">
+    <div class="kpi-card">
+        <span class="kpi-value">{{ nb_products }}</span>
+        <span class="kpi-label">Produits</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-value">{{ nb_customers }}</span>
+        <span class="kpi-label">Clients</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-value">{{ nb_orders }}</span>
+        <span class="kpi-label">Commandes</span>
+    </div>
+    <div class="kpi-card {{ 'kpi-warning' if nb_critical > 0 else '' }}">
+        <span class="kpi-value">{{ nb_critical }}</span>
+        <span class="kpi-label">Stock critique</span>
+    </div>
+</section>
+
+<section class="quick-links">
+    <a href="{{ url_for('products_list') }}" class="quick-link-card">
+        <h3>📦 Produits</h3>
+        <p>Ajouter, modifier ou supprimer des jeux.</p>
+    </a>
+    <a href="{{ url_for('customers_list') }}" class="quick-link-card">
+        <h3>👥 Clients</h3>
+        <p>Gérer les comptes clients.</p>
+    </a>
+    <a href="{{ url_for('orders_list') }}" class="quick-link-card">
+        <h3>📋 Commandes</h3>
+        <p>Voir et gérer toutes les commandes.</p>
+    </a>
+    <a href="{{ url_for('stock_list') }}" class="quick-link-card">
+        <h3>📊 Stock</h3>
+        <p>Suivre les niveaux de stock.</p>
+    </a>
 </section>
 {% endblock %}

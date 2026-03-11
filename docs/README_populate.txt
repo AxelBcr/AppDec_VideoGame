@@ -1,0 +1,2 @@
+-- Voir le fichier populate_magasin.sql généré et téléchargé.
+-- Exécuter ce script sur votre base MySQL OVH pour peupler les données.

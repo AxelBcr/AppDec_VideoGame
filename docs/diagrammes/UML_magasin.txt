@@ -1,0 +1,125 @@
+Sub Create_Tables()
+
+DoCmd.RunSQL "CREATE TABLE geolocation(" & _
+   "zip_code_prefix INT," & _
+   "city VARCHAR(100)," & _
+   "state VARCHAR(50)," & _
+   "region VARCHAR(100)," & _
+   "latitude DECIMAL(10,7)," & _
+   "longitude DECIMAL(10,7)," & _
+   "PRIMARY KEY(zip_code_prefix)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE customers(" & _
+   "customer_id VARCHAR(50)," & _
+   "first_name VARCHAR(100)," & _
+   "last_name VARCHAR(100)," & _
+   "email VARCHAR(255) NOT NULL," & _
+   "phone VARCHAR(20)," & _
+   "city VARCHAR(100)," & _
+   "state VARCHAR(50)," & _
+   "customer_segment VARCHAR(50)," & _
+   "registration_date DATETIME DEFAULT CURRENT_TIMESTAMP," & _
+   "last_purchase_date DATETIME," & _
+   "total_orders INT DEFAULT 0," & _
+   "total_spent DECIMAL(10,2) DEFAULT 0.00," & _
+   "zip_code_prefix INT NOT NULL," & _
+   "PRIMARY KEY(customer_id)," & _
+   "UNIQUE(email)," & _
+   "FOREIGN KEY(zip_code_prefix) REFERENCES geolocation(zip_code_prefix)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE orders(" & _
+   "order_id VARCHAR(50)," & _
+   "order_status VARCHAR(50) NOT NULL DEFAULT 'pending'," & _
+   "order_purchase_timestamp DATETIME NOT NULL," & _
+   "order_approved_at DATETIME," & _
+   "order_delivered_carrier_date DATETIME," & _
+   "order_delivered_customer_date DATETIME," & _
+   "customer_id VARCHAR(50) NOT NULL," & _
+   "PRIMARY KEY(order_id)," & _
+   "FOREIGN KEY(customer_id) REFERENCES customers(customer_id)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE products(" & _
+   "product_id VARCHAR(50)," & _
+   "product_name VARCHAR(255) NOT NULL," & _
+   "product_category VARCHAR(100)," & _
+   "product_platform VARCHAR(50)," & _
+   "product_esrb_rating VARCHAR(20)," & _
+   "product_release_year INT," & _
+   "product_price DECIMAL(10,2) NOT NULL," & _
+   "product_weight_g INT," & _
+   "product_description TEXT," & _
+   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP," & _
+   "PRIMARY KEY(product_id)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE sellers(" & _
+   "seller_id VARCHAR(50)," & _
+   "seller_name VARCHAR(255) NOT NULL," & _
+   "seller_type VARCHAR(50) DEFAULT 'Store'," & _
+   "city VARCHAR(100)," & _
+   "state VARCHAR(50)," & _
+   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP," & _
+   "zip_code_prefix INT NOT NULL," & _
+   "PRIMARY KEY(seller_id)," & _
+   "FOREIGN KEY(zip_code_prefix) REFERENCES geolocation(zip_code_prefix)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE order_payments(" & _
+   "order_id VARCHAR(50)," & _
+   "payment_sequential INT," & _
+   "payment_type VARCHAR(50) NOT NULL," & _
+   "payment_installments INT DEFAULT 1," & _
+   "payment_value DECIMAL(10,2) NOT NULL," & _
+   "payment_approved_at DATETIME," & _
+   "PRIMARY KEY(order_id, payment_sequential)," & _
+   "FOREIGN KEY(order_id) REFERENCES orders(order_id)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE order_reviews(" & _
+   "review_id VARCHAR(50)," & _
+   "review_score INT NOT NULL CHECK(review_score BETWEEN 1 AND 5)," & _
+   "review_comment_title VARCHAR(255)," & _
+   "review_comment_message TEXT," & _
+   "review_creation_date DATETIME DEFAULT CURRENT_TIMESTAMP," & _
+   "order_id VARCHAR(50) NOT NULL," & _
+   "PRIMARY KEY(review_id)," & _
+   "FOREIGN KEY(order_id) REFERENCES orders(order_id)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE order_items(" & _
+   "order_id VARCHAR(50)," & _
+   "order_item_id INT," & _
+   "shipping_limit_date DATETIME," & _
+   "price DECIMAL(10,2) NOT NULL," & _
+   "freight_value DECIMAL(10,2) NOT NULL DEFAULT 0.00," & _
+   "quantity INT NOT NULL DEFAULT 1," & _
+   "seller_id VARCHAR(50) NOT NULL," & _
+   "product_id VARCHAR(50) NOT NULL," & _
+   "PRIMARY KEY(order_id, order_item_id)," & _
+   "FOREIGN KEY(order_id) REFERENCES orders(order_id)," & _
+   "FOREIGN KEY(seller_id) REFERENCES sellers(seller_id)," & _
+   "FOREIGN KEY(product_id) REFERENCES products(product_id)" & _
+");"   
+
+DoCmd.RunSQL "CREATE TABLE stock(" & _
+   "stock_id VARCHAR(50)," & _
+   "quantity_in_stock INT NOT NULL DEFAULT 0," & _
+   "quantity_reserved INT NOT NULL DEFAULT 0," & _
+   "quantity_available INT NOT NULL DEFAULT 0," & _
+   "min_stock_level INT DEFAULT 12," & _
+   "reorder_point INT DEFAULT 19," & _
+   "last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," & _
+   "warehouse_location VARCHAR(50)," & _
+   "stock_condition VARCHAR(50) DEFAULT 'new'," & _
+   "product_id VARCHAR(50) NOT NULL," & _
+   "seller_id VARCHAR(50) NOT NULL," & _
+   "PRIMARY KEY(stock_id)," & _
+   "UNIQUE(seller_id, product_id)," & _
+   "FOREIGN KEY(product_id) REFERENCES products(product_id)," & _
+   "FOREIGN KEY(seller_id) REFERENCES sellers(seller_id)" & _
+");"   
+
+End Sub

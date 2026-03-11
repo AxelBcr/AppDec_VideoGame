@@ -1,37 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Modifier un produit{% endblock %}
+{% block title %}Modifier – {{ product.product_name }}{% endblock %}
 
 {% block content %}
 <section>
     <h2>Modifier le produit {{ product.product_id }}</h2>
 
     <form method="post" class="entity-form">
-        <label>Nom</label>
-        <input type="text" name="name" value="{{ product.product_name }}">
+        <label>Nom
+            <input type="text" name="name" value="{{ product.product_name }}" required>
+        </label>
+        <label>Catégorie
+            <input type="text" name="category" value="{{ product.product_category }}" required>
+        </label>
+        <label>Plateforme
+            <input type="text" name="platform" value="{{ product.product_platform }}" required>
+        </label>
+        <label>ESRB / PEGI
+            <input type="text" name="esrb" value="{{ product.product_esrb_rating }}" required>
+        </label>
+        <label>Année de sortie
+            <input type="number" name="year" value="{{ product.product_release_year }}" min="1970" required>
+        </label>
+        <label>Prix (€)
+            <input type="number" name="price" value="{{ product.product_price }}" step="0.01" min="0.01" required>
+        </label>
+        <label>Poids (g)
+            <input type="number" name="weight" value="{{ product.product_weight_g }}" min="1" required>
+        </label>
+        <label>Description
+            <input type="text" name="description" value="{{ product.product_description or '' }}">
+        </label>
 
-        <label>Catégorie</label>
-        <input type="text" name="category" value="{{ product.product_category }}">
-
-        <label>Plateforme</label>
-        <input type="text" name="platform" value="{{ product.product_platform }}">
-
-        <label>ESRB</label>
-        <input type="text" name="esrb" value="{{ product.product_esrb_rating }}">
-
-        <label>Année de sortie</label>
-        <input type="text" name="year" value="{{ product.product_release_year }}">
-
-        <label>Prix (€)</label>
-        <input type="text" name="price" value="{{ product.product_price }}">
-
-        <label>Poids (g)</label>
-        <input type="text" name="weight" value="{{ product.product_weight_g }}">
-
-        <label>Description</label>
-        <input type="text" name="description" value="{{ product.product_description }}">
-
-        <button type="submit">Enregistrer</button>
-        <a href="{{ url_for('products_list') }}" class="btn">Annuler</a>
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+            <button type="submit">Enregistrer</button>
+            <a href="{{ url_for('products_list') }}" class="btn-back">Annuler</a>
+        </div>
     </form>
 </section>
 {% endblock %}

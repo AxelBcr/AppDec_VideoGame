@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Mon panier{% endblock %}
+
+{% block content %}
+<section class="store-section">
+    <h1>🛒 Mon panier</h1>
+
+    {% if not products %}
+        <p>Votre panier est vide.</p>
+        <a href="{{ url_for('products_list') }}" class="btn-primary">Voir la boutique</a>
+    {% else %}
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Produit</th>
+            <th>Plateforme</th>
+            <th>Prix unitaire</th>
+            <th>Quantité</th>
+            <th>Total ligne</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for p in products %}
+            <tr>
+                <td>{{ p.product_name }}</td>
+                <td>{{ p.product_platform }}</td>
+                <td>{{ "%.2f"|format(p.product_price) }} €</td>
+                <td>
+                    <form method="post" action="{{ url_for('cart_update') }}" style="display:inline;">
+                        <input type="number" name="qty_{{ p.product_id }}"
+                               value="{{ p.quantity }}" min="0" style="width:60px;">
+                        <button type="submit" style="padding:0.3rem 0.5rem; font-size:0.8rem;">OK</button>
+                    </form>
+                </td>
+                <td>{{ "%.2f"|format(p.line_total) }} €</td>
+                <td>
+                    <form method="post" action="{{ url_for('cart_remove', product_id=p.product_id) }}"
+                          style="display:inline;">
+                        <button type="submit" class="btn-danger-sm">Retirer</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="order-total">Total : {{ "%.2f"|format(total) }} €</p>
+
+    <div style="text-align:right; margin-top:1rem;">
+        <form method="post" action="{{ url_for('cart_checkout') }}" style="display:inline;">
+            <button type="submit" class="btn-primary"
+                    onclick="return confirm('Confirmer la commande ?');">
+                Passer commande
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

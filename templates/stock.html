@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Gestion du stock{% endblock %}
+
+{% block content %}
+<section>
+    <h2>📊 Gestion du stock</h2>
+    <p>Ajustez les quantités, seuils et emplacements de chaque ligne de stock.</p>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Stock ID</th>
+            <th>Produit</th>
+            <th>Seller</th>
+            <th>En stock</th>
+            <th>Réservé</th>
+            <th>Disponible</th>
+            <th>Seuil min</th>
+            <th>Reorder</th>
+            <th>Entrepôt</th>
+            <th>État</th>
+            <th>Dernière MAJ</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for s in stock_rows %}
+        <tr class="{{ 'stock-critical' if s.quantity_available <= s.min_stock_level else '' }}">
+            <td>{{ s.stock_id }}</td>
+            <td>
+                {{ s.product_name }}<br>
+                <small>{{ s.product_id }}</small>
+            </td>
+            <form method="post" action="{{ url_for('stock_update', stock_id=s.stock_id) }}">
+            <td><input type="text" name="seller_id" value="{{ s.seller_id }}" style="width:90px;"></td>
+            <td><input type="number" name="quantity_in_stock" value="{{ s.quantity_in_stock }}" min="0" style="width:65px;"></td>
+            <td><input type="number" name="quantity_reserved" value="{{ s.quantity_reserved }}" min="0" style="width:65px;"></td>
+            <td><strong>{{ s.quantity_available }}</strong></td>
+            <td><input type="number" name="min_stock_level" value="{{ s.min_stock_level }}" min="0" style="width:65px;"></td>
+            <td><input type="number" name="reorder_point" value="{{ s.reorder_point }}" min="0" style="width:65px;"></td>
+            <td><input type="text" name="warehouse_location" value="{{ s.warehouse_location }}" style="width:80px;"></td>
+            <td><input type="text" name="stock_condition" value="{{ s.stock_condition }}" style="width:70px;"></td>
+            <td><small>{{ s.last_updated }}</small></td>
+            <td><button type="submit" style="padding:0.3rem 0.5rem; font-size:0.8rem;">💾</button></td>
+            </form>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<style>
+.stock-critical { background-color: #fff5f5 !important; }
+.stock-critical td { color: #c0392b; }
+</style>
+{% endblock %}

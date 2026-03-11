@@ -1,38 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Produits{% endblock %}
+{% block title %}Gestion des produits{% endblock %}
 
 {% block content %}
 <section>
     <h2>Catalogue produits</h2>
 
-    <form method="get" class="filter-form">
-        <input type="text" name="name" placeholder="Nom">
-        <input type="text" name="category" placeholder="Catégorie">
-        <input type="text" name="min_price" placeholder="Prix min">
-        <input type="text" name="max_price" placeholder="Prix max">
+    <form method="get" class="filter-form filter-form-inline">
+        <input type="text" name="name" placeholder="Nom"
+               value="{{ request.args.get('name', '') }}">
+        <input type="text" name="category" placeholder="Catégorie"
+               value="{{ request.args.get('category', '') }}">
+        <input type="number" name="min_price" placeholder="Prix min" step="0.01"
+               value="{{ request.args.get('min_price', '') }}">
+        <input type="number" name="max_price" placeholder="Prix max" step="0.01"
+               value="{{ request.args.get('max_price', '') }}">
         <button type="submit">Filtrer</button>
     </form>
 
     {% if is_admin %}
-    <h3>Ajouter un produit</h3>
-    <form method="post" action="{{ url_for('products_add') }}" class="entity-form">
-        <input type="text" name="name" placeholder="Nom" required>
-        <input type="text" name="category" placeholder="Catégorie" required>
-        <input type="text" name="platform" placeholder="Plateforme (PS5, Switch...)" required>
-        <input type="text" name="esrb" placeholder="ESRB (3+, 16+, ...)" required>
-        <input type="text" name="year" placeholder="Année" required>
-        <input type="text" name="price" placeholder="Prix (€)" required>
-        <input type="text" name="weight" placeholder="Poids (g)" required>
-        <input type="text" name="description" placeholder="Description">
-        <button type="submit">Ajouter</button>
-    </form>
+    <details class="add-form-section">
+        <summary><h3>+ Ajouter un produit</h3></summary>
+        <form method="post" action="{{ url_for('products_add') }}" class="entity-form">
+            <label>Nom <input type="text" name="name" required></label>
+            <label>Catégorie <input type="text" name="category" required></label>
+            <label>Plateforme <input type="text" name="platform" placeholder="PS5, Switch, PC..." required></label>
+            <label>ESRB / PEGI <input type="text" name="esrb" placeholder="3+, 7+, 16+..." required></label>
+            <label>Année <input type="number" name="year" min="1970" required></label>
+            <label>Prix (€) <input type="number" name="price" step="0.01" min="0.01" required></label>
+            <label>Poids (g) <input type="number" name="weight" min="1" required></label>
+            <label>Description <input type="text" name="description"></label>
+            <button type="submit">Ajouter</button>
+        </form>
+    </details>
     {% endif %}
 
     <table class="data-table">
         <thead>
         <tr>
             <th>ID</th><th>Nom</th><th>Catégorie</th><th>Plateforme</th>
-            <th>Prix</th><th>ESRB</th><th>Image</th>
+            <th>Prix</th><th>ESRB</th>
             {% if is_admin %}<th>Actions</th>{% endif %}
         </tr>
         </thead>
@@ -43,18 +49,16 @@
                 <td>{{ p.product_name }}</td>
                 <td>{{ p.product_category }}</td>
                 <td>{{ p.product_platform }}</td>
-                <td>{{ "%.2f"|format(p.product_price) }}</td>
+                <td>{{ "%.2f"|format(p.product_price) }} €</td>
                 <td>{{ p.product_esrb_rating }}</td>
-                <td><a href="{{ p.product_image }}" target="_blank">Voir images</a></td>
-
                 {% if is_admin %}
-                <td>
+                <td class="actions-cell">
                     <a href="{{ url_for('product_edit', product_id=p.product_id) }}" class="btn-edit">Modifier</a>
                     <form method="post"
                           action="{{ url_for('products_delete', product_id=p.product_id) }}"
                           onsubmit="return confirm('Supprimer ce produit ?');"
                           style="display:inline;">
-                        <button type="submit">Supprimer</button>
+                        <button type="submit" class="btn-danger-sm">Supprimer</button>
                     </form>
                 </td>
                 {% endif %}

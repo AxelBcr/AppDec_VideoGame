@@ -1,50 +1,53 @@
 {% extends "base.html" %}
-{% block title %}Modifier un client{% endblock %}
+{% block title %}Modifier – {{ customer.first_name }} {{ customer.last_name }}{% endblock %}
 
 {% block content %}
 <section>
     <h2>Modifier le client {{ customer.customer_id }}</h2>
 
     <form method="post" class="entity-form">
-        <label>Prénom</label>
-        <input type="text" name="first_name" value="{{ customer.first_name }}">
+        <label>Prénom
+            <input type="text" name="first_name" value="{{ customer.first_name }}" required>
+        </label>
+        <label>Nom
+            <input type="text" name="last_name" value="{{ customer.last_name }}" required>
+        </label>
+        <label>E-mail
+            <input type="email" name="email" value="{{ customer.email }}" required>
+        </label>
+        <label>Nouveau mot de passe (laisser vide pour ne pas changer)
+            <input type="password" name="password" autocomplete="new-password">
+        </label>
+        <label>Téléphone
+            <input type="text" name="phone" value="{{ customer.phone or '' }}">
+        </label>
+        <label>Code postal
+            <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}">
+        </label>
+        <label>Ville
+            <input type="text" name="city" value="{{ customer.city }}">
+        </label>
+        <label>Région / État
+            <input type="text" name="state" value="{{ customer.state }}">
+        </label>
+        <label>Adresse ligne 1
+            <input type="text" name="address_line1" value="{{ customer.address_line1 or '' }}">
+        </label>
+        <label>Adresse ligne 2
+            <input type="text" name="address_line2" value="{{ customer.address_line2 or '' }}">
+        </label>
+        <label>Rôle administrateur
+            <select name="is_admin">
+                <option value="" selected>(inchangé)</option>
+                <option value="0">Non</option>
+                <option value="1">Oui</option>
+            </select>
+        </label>
 
-        <label>Nom</label>
-        <input type="text" name="last_name" value="{{ customer.last_name }}">
-
-        <label>E-mail</label>
-        <input type="email" name="email" value="{{ customer.email }}">
-
-        <label>Mot de passe (laisser vide pour ne pas changer)</label>
-        <input type="password" name="password">
-
-        <label>Téléphone</label>
-        <input type="text" name="phone" value="{{ customer.phone }}">
-
-        <label>Code postal</label>
-        <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}">
-
-        <label>Ville</label>
-        <input type="text" name="city" value="{{ customer.city }}">
-
-        <label>Région / État</label>
-        <input type="text" name="state" value="{{ customer.state }}">
-
-        <label>Adresse ligne 1</label>
-        <input type="text" name="address_line1" value="{{ customer.address_line1 }}">
-
-        <label>Adresse ligne 2</label>
-        <input type="text" name="address_line2" value="{{ customer.address_line2 }}">
-
-        <label>Admin ?</label>
-        <select name="is_admin">
-            <option value="" selected>(inchangé)</option>
-            <option value="0">Non</option>
-            <option value="1">Oui</option>
-        </select>
-
-        <button type="submit">Enregistrer</button>
-        <a href="{{ url_for('customers_list') }}" class="btn">Annuler</a>
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+            <button type="submit">Enregistrer</button>
+            <a href="{{ url_for('customers_list') }}" class="btn-back">Annuler</a>
+        </div>
     </form>
 </section>
 {% endblock %}
