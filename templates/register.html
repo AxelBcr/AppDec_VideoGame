@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte – GameStore{% endblock %}
+
+{% block content %}
+<section class="form-container">
+    <h2>🎮 Créer un compte</h2>
+    <form method="post" class="entity-form">
+        <label for="first_name">Prénom</label>
+        <input type="text" name="first_name" id="first_name" required
+               value="{{ request.form.get('first_name', '') }}">
+
+        <label for="last_name">Nom</label>
+        <input type="text" name="last_name" id="last_name" required
+               value="{{ request.form.get('last_name', '') }}">
+
+        <label for="email">E-mail</label>
+        <input type="email" name="email" id="email" required autocomplete="email"
+               value="{{ request.form.get('email', '') }}">
+
+        <label for="password">Mot de passe</label>
+        <input type="password" name="password" id="password" required
+               autocomplete="new-password" minlength="4">
+
+        <label for="phone">Téléphone</label>
+        <input type="tel" name="phone" id="phone"
+               pattern="0[1-9]\d{8}" maxlength="10"
+               placeholder="0612345678" title="10 chiffres commençant par 0"
+               value="{{ request.form.get('phone', '') }}">
+
+        <label for="zip_code_prefix">Code postal</label>
+        <input type="text" name="zip_code_prefix" id="zip_code_prefix"
+               pattern="\d{5}" maxlength="5" required
+               placeholder="75001" title="5 chiffres (format français)"
+               list="zip-codes-list"
+               value="{{ request.form.get('zip_code_prefix', '') }}">
+
+        <label for="city">Ville</label>
+        <input type="text" name="city" id="city" required
+               list="cities-list" autocomplete="address-level2"
+               value="{{ request.form.get('city', '') }}">
+
+        <label for="state">Région</label>
+        <input type="text" name="state" id="state" required
+               list="states-list" autocomplete="address-level1"
+               value="{{ request.form.get('state', '') }}">
+
+        <label for="address_line1">Adresse ligne 1</label>
+        <input type="text" name="address_line1" id="address_line1"
+               value="{{ request.form.get('address_line1', '') }}">
+
+        <label for="address_line2">Adresse ligne 2</label>
+        <input type="text" name="address_line2" id="address_line2"
+               value="{{ request.form.get('address_line2', '') }}">
+
+        <button type="submit">Créer mon compte</button>
+    </form>
+
+    <p style="text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Déjà un compte ?
+        <a href="{{ url_for('login') }}">Se connecter</a>
+    </p>
+</section>
+
+<!-- Datalists pour autocomplétion -->
+<datalist id="cities-list"></datalist>
+<datalist id="states-list"></datalist>
+<datalist id="zip-codes-list"></datalist>
+{% endblock %}

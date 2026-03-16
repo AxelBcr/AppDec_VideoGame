@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Mon profil – GameStore{% endblock %}
+
+{% block content %}
+<section>
+    <h2>👤 Mon profil</h2>
+
+    <div class="profile-info-grid">
+        <div class="profile-info-card">
+            <h3>Informations du compte</h3>
+            <p><strong>ID :</strong> {{ customer.customer_id }}</p>
+            <p><strong>E-mail :</strong> {{ customer.email }}</p>
+            <p><strong>Rôle :</strong> {{ "Administrateur" if is_admin else "Client" }}</p>
+            <p><strong>Inscrit le :</strong> {{ customer.registration_date }}</p>
+        </div>
+        <div class="profile-info-card">
+            <h3>Statistiques</h3>
+            <p><strong>Commandes :</strong> {{ customer.total_orders }}</p>
+            <p><strong>Total dépensé :</strong> {{ "%.2f"|format(customer.total_spent) }} €</p>
+            {% if customer.last_purchase_date %}
+            <p><strong>Dernier achat :</strong> {{ customer.last_purchase_date }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <details class="add-form-section" open>
+        <summary><h3>✏️ Modifier mon profil</h3></summary>
+        <form method="post" class="entity-form">
+            <label>Prénom
+                <input type="text" name="first_name" value="{{ customer.first_name }}" required>
+            </label>
+            <label>Nom
+                <input type="text" name="last_name" value="{{ customer.last_name }}" required>
+            </label>
+            <label>Nouveau mot de passe (laisser vide pour ne pas changer)
+                <input type="password" name="password" autocomplete="new-password" minlength="4">
+            </label>
+            <label>Téléphone
+                <input type="tel" name="phone" value="{{ customer.phone or '' }}"
+                       pattern="0[1-9]\d{8}" maxlength="10"
+                       placeholder="0612345678" title="10 chiffres commençant par 0">
+            </label>
+            <label>Code postal
+                <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}"
+                       pattern="\d{5}" maxlength="5"
+                       placeholder="75001" title="5 chiffres (format français)"
+                       list="zip-codes-list">
+            </label>
+            <label>Ville
+                <input type="text" name="city" value="{{ customer.city }}"
+                       list="cities-list" autocomplete="address-level2">
+            </label>
+            <label>Région
+                <input type="text" name="state" value="{{ customer.state }}"
+                       list="states-list" autocomplete="address-level1">
+            </label>
+            <label>Adresse ligne 1
+                <input type="text" name="address_line1" value="{{ customer.address_line1 or '' }}">
+            </label>
+            <label>Adresse ligne 2
+                <input type="text" name="address_line2" value="{{ customer.address_line2 or '' }}">
+            </label>
+
+            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                <button type="submit">Enregistrer</button>
+                <a href="{{ url_for('dashboard') }}" class="btn-back">Retour</a>
+            </div>
+        </form>
+    </details>
+
+    <!-- Datalists pour autocomplétion -->
+    <datalist id="cities-list"></datalist>
+    <datalist id="states-list"></datalist>
+    <datalist id="zip-codes-list"></datalist>
+</section>
+{% endblock %}

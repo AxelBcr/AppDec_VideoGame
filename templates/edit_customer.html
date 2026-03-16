@@ -26,7 +26,8 @@
         <label>Code postal
             <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}"
                    pattern="\d{5}" maxlength="5"
-                   placeholder="75001" title="5 chiffres (format français)">
+                   placeholder="75001" title="5 chiffres (format français)"
+                   list="zip-codes-list">
         </label>
         <label>Ville
             <input type="text" name="city" value="{{ customer.city }}"
@@ -59,5 +60,6 @@
     <!-- Datalists pour autocomplétion -->
     <datalist id="cities-list"></datalist>
     <datalist id="states-list"></datalist>
+    <datalist id="zip-codes-list"></datalist>
 </section>
 {% endblock %}
