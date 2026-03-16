@@ -15,6 +15,7 @@
         </div>
         <div class="profile-info-card">
             <h3>Statistiques</h3>
+            <p><strong>Segment :</strong> {{ customer.customer_segment or "nouveau" }}</p>
             <p><strong>Commandes :</strong> {{ customer.total_orders }}</p>
             <p><strong>Total dépensé :</strong> {{ "%.2f"|format(customer.total_spent) }} €</p>
             {% if customer.last_purchase_date %}

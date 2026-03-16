@@ -258,6 +258,14 @@ def products_list():
     if is_admin:
         return render_template("products.html", products=products, is_admin=True)
     else:
+        # Compute available stock per product for quantity limits
+        stock_avail = (
+            magasin.stock.groupby("product_id")["quantity_available"]
+            .sum()
+            .to_dict()
+        )
+        for p in products:
+            p["stock_available"] = int(stock_avail.get(p["product_id"], 0))
         return render_template("products_store.html", products=products, is_admin=False)
 
 
@@ -461,10 +469,16 @@ def cart_view():
 
 @app.route("/cart/add/<product_id>", methods=["POST"])
 def cart_add(product_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     if not require_login():
+        if is_ajax:
+            return jsonify(ok=False, message="Non connecté."), 401
         return redirect(url_for("login"))
 
     if product_id not in set(magasin.products["product_id"]):
+        if is_ajax:
+            return jsonify(ok=False, message="Produit introuvable.")
         flash("Produit introuvable.", "error")
         return redirect(url_for("products_list"))
 
@@ -474,8 +488,28 @@ def cart_add(product_id):
     except ValueError:
         qty = 1
 
-    cart[product_id] = cart.get(product_id, 0) + qty
+    # Check available stock
+    stock_avail = int(
+        magasin.stock.loc[
+            magasin.stock["product_id"] == product_id, "quantity_available"
+        ].sum()
+    )
+    already_in_cart = cart.get(product_id, 0)
+    if already_in_cart + qty > stock_avail:
+        msg = (
+            f"Stock insuffisant (disponible : {stock_avail}, "
+            f"déjà dans le panier : {already_in_cart})."
+        )
+        if is_ajax:
+            return jsonify(ok=False, message=msg, stock=stock_avail)
+        flash(msg, "error")
+        return redirect(url_for("products_list"))
+
+    cart[product_id] = already_in_cart + qty
     save_cart(cart)
+
+    if is_ajax:
+        return jsonify(ok=True, message="Produit ajouté au panier.")
     flash("Produit ajouté au panier.", "success")
     return redirect(url_for("products_list"))
 
