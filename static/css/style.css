@@ -517,3 +517,22 @@ button:hover { background: #1e3c72; }
     .filter-form { flex-direction: column; }
     .filter-form input, .filter-form select { width: 100%; }
 }
+
+/* ---------- Dynamic field validation ---------- */
+
+.field-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.18) !important;
+}
+
+.field-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.15) !important;
+}
+
+.field-error-msg {
+    display: block;
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+}

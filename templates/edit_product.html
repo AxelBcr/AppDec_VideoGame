@@ -10,13 +10,16 @@
             <input type="text" name="name" value="{{ product.product_name }}" required>
         </label>
         <label>Catégorie
-            <input type="text" name="category" value="{{ product.product_category }}" required>
+            <input type="text" name="category" value="{{ product.product_category }}"
+                   required list="categories-list">
         </label>
         <label>Plateforme
-            <input type="text" name="platform" value="{{ product.product_platform }}" required>
+            <input type="text" name="platform" value="{{ product.product_platform }}"
+                   required list="platforms-list">
         </label>
         <label>ESRB / PEGI
-            <input type="text" name="esrb" value="{{ product.product_esrb_rating }}" required>
+            <input type="text" name="esrb" value="{{ product.product_esrb_rating }}"
+                   required list="esrb-list">
         </label>
         <label>Année de sortie
             <input type="number" name="year" value="{{ product.product_release_year }}" min="1970" required>
@@ -36,5 +39,20 @@
             <a href="{{ url_for('products_list') }}" class="btn-back">Annuler</a>
         </div>
     </form>
+
+    <!-- Datalists pour autocomplétion -->
+    <datalist id="categories-list"></datalist>
+    <datalist id="platforms-list"></datalist>
+    <datalist id="esrb-list">
+        <option value="3+">
+        <option value="7+">
+        <option value="12+">
+        <option value="16+">
+        <option value="18+">
+        <option value="Everyone">
+        <option value="Everyone 10+">
+        <option value="Teen">
+        <option value="Mature">
+    </datalist>
 </section>
 {% endblock %}
