@@ -894,6 +894,72 @@ class Magasin:
         return df[df["city"].str.contains(city.strip(), case=False, na=False)]
 
     # ------------------------------------------------------------------ #
+    #  Mise à jour dynamique des stats client
+    # ------------------------------------------------------------------ #
+
+    def _refresh_customer_stats(self, customer_id):
+        """
+        Recalcule total_orders, total_spent, last_purchase_date et
+        customer_segment à partir des commandes réelles, puis met à jour
+        la base et le DataFrame en mémoire.
+        """
+        self._ensure_connection()
+        cursor = self.connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(DISTINCT o.order_id) AS total_orders,
+                    COALESCE(SUM(oi.price * oi.quantity + oi.freight_value), 0)
+                        AS total_spent,
+                    MAX(o.order_purchase_timestamp) AS last_purchase_date
+                FROM orders o
+                JOIN order_items oi ON oi.order_id = o.order_id
+                WHERE o.customer_id = %s
+                  AND o.order_status <> 'cancelled'
+                """,
+                (customer_id,)
+            )
+            row = cursor.fetchone()
+            total_orders = int(row["total_orders"]) if row["total_orders"] else 0
+            total_spent = float(row["total_spent"]) if row["total_spent"] else 0.0
+            last_purchase = row["last_purchase_date"]
+
+            # Déterminer le segment en fonction du total dépensé
+            if total_orders == 0:
+                segment = "nouveau"
+            elif total_spent < 200:
+                segment = "casual"
+            elif total_spent < 1000:
+                segment = "regular"
+            elif total_spent < 2000:
+                segment = "premium"
+            else:
+                segment = "vip"
+
+            cursor.execute(
+                """
+                UPDATE customers
+                SET total_orders      = %s,
+                    total_spent       = %s,
+                    last_purchase_date = %s,
+                    customer_segment  = %s
+                WHERE customer_id = %s
+                """,
+                (total_orders, round(total_spent, 2),
+                 last_purchase, segment, customer_id)
+            )
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL (refresh stats) : {err}")
+        finally:
+            cursor.close()
+
+        # Rafraîchir le DataFrame
+        self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
+
+    # ------------------------------------------------------------------ #
     #  Commandes – Création depuis panier
     # ------------------------------------------------------------------ #
 
@@ -992,6 +1058,9 @@ class Magasin:
         self.orders = pd.read_sql("SELECT * FROM orders", self.connection)
         self.order_items = pd.read_sql("SELECT * FROM order_items", self.connection)
         self.stock = pd.read_sql("SELECT * FROM stock", self.connection)
+
+        # Mettre à jour total_orders, total_spent, customer_segment
+        self._refresh_customer_stats(customer_id)
 
         return order_id
 
@@ -1102,6 +1171,12 @@ class Magasin:
 
         self.orders = pd.read_sql("SELECT * FROM orders", self.connection)
         self.stock = pd.read_sql("SELECT * FROM stock", self.connection)
+
+        # Recalculer les stats du client (utile si commande annulée)
+        order_row = self.orders[self.orders["order_id"] == order_id]
+        if not order_row.empty:
+            cid = order_row.iloc[0]["customer_id"]
+            self._refresh_customer_stats(cid)
 
     def _restore_stock_for_order(self, cursor, order_id):
         """Restaure le stock quand une commande est annulée."""
