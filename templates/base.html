@@ -229,11 +229,16 @@
      * Cache local des entrées géolocalisation pour le remplissage croisé.
      */
     var geoCache = [];
+    var geoCachePromise = null;
 
     function loadGeoCache() {
-        fetch("/api/geolocation")
+        geoCachePromise = fetch("/api/geolocation")
             .then(function (r) { return r.json(); })
-            .then(function (entries) { geoCache = entries; });
+            .then(function (entries) {
+                geoCache = entries;
+                return entries;
+            });
+        return geoCachePromise;
     }
 
     /**
@@ -319,10 +324,7 @@
         loadDatalist("zip-codes-list", "/api/zip_codes");
         loadDatalist("categories-list", "/api/categories");
         loadDatalist("platforms-list", "/api/platforms");
-        loadGeoCache();
-
-        /* Attendre le chargement du cache géo puis activer le cross-fill */
-        setTimeout(setupGeoCrossAutofill, 500);
+        loadGeoCache().then(function () { setupGeoCrossAutofill(); });
     });
 })();
 </script>

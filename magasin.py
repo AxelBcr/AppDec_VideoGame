@@ -230,10 +230,17 @@ class Magasin:
 
         if zip_code_prefix is not None:
             zcp = str(zip_code_prefix).strip()
-            if zcp and int(zcp) not in self.geolocation["zip_code_prefix"].values:
-                raise ValueError(
-                    f"Le code postal « {zcp} » n'existe pas dans la base de géolocalisation."
-                )
+            if zcp:
+                try:
+                    zcp_int = int(zcp)
+                except (ValueError, TypeError):
+                    raise ValueError(
+                        f"Le code postal « {zcp} » n'est pas un nombre valide."
+                    )
+                if zcp_int not in self.geolocation["zip_code_prefix"].values:
+                    raise ValueError(
+                        f"Le code postal « {zcp} » n'existe pas dans la base de géolocalisation."
+                    )
 
         if city is not None:
             city_val = city.strip()
@@ -743,6 +750,8 @@ class Magasin:
             cursor.close()
 
         self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
+
+    def modify_customer(self, customer_id, first_name=None, last_name=None,
                         email=None, password=None, phone=None,
                         zip_code_prefix=None, city=None, state=None,
                         address_line1=None, address_line2=None, is_admin=None):
