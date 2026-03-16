@@ -420,6 +420,16 @@ button:hover { background: #1e3c72; }
 }
 .add-to-cart-form input[type="number"] { width: 55px; padding: 0.3rem; }
 
+.product-stock {
+    font-size: 0.85rem;
+    color: #27ae60;
+    font-weight: 600;
+    margin-top: 0.3rem;
+}
+.product-stock.out-of-stock {
+    color: #e74c3c;
+}
+
 /* ---------- Store sections (client dashboard) ---------- */
 
 .store-section { padding: 1rem 0; }

@@ -47,15 +47,21 @@
 
                 <p class="product-esrb">PEGI / ESRB : {{ p.product_esrb_rating }}</p>
 
+                {% if p.stock_available > 0 %}
+                <p class="product-stock">Stock : {{ p.stock_available }}</p>
                 <form method="post"
                       action="{{ url_for('cart_add', product_id=p.product_id) }}"
                       class="add-to-cart-form">
                     <label>
                         Qté
-                        <input type="number" name="quantity" value="1" min="1" style="width:60px;">
+                        <input type="number" name="quantity" value="1" min="1"
+                               max="{{ p.stock_available }}" style="width:60px;">
                     </label>
                     <button class="btn-primary" type="submit">Ajouter au panier</button>
                 </form>
+                {% else %}
+                <p class="product-stock out-of-stock">Rupture de stock</p>
+                {% endif %}
             </div>
         </article>
         {% endfor %}
@@ -63,4 +69,51 @@
         <p>Aucun produit ne correspond à votre recherche.</p>
     {% endif %}
 </section>
+
+<script>
+document.querySelectorAll('.add-to-cart-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = form.querySelector('button[type="submit"]');
+        var input = form.querySelector('input[name="quantity"]');
+        var originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '…';
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            var msg = document.createElement('span');
+            msg.style.marginLeft = '8px';
+            msg.style.fontWeight = 'bold';
+            if (data.ok) {
+                msg.style.color = '#27ae60';
+                msg.textContent = '✓ Ajouté';
+                input.value = '1';
+            } else {
+                msg.style.color = '#e74c3c';
+                msg.textContent = data.message || 'Erreur';
+            }
+            btn.parentNode.appendChild(msg);
+            setTimeout(function () { msg.remove(); }, 3000);
+        })
+        .catch(function () {
+            var msg = document.createElement('span');
+            msg.style.marginLeft = '8px';
+            msg.style.color = '#e74c3c';
+            msg.textContent = 'Erreur réseau';
+            btn.parentNode.appendChild(msg);
+            setTimeout(function () { msg.remove(); }, 3000);
+        })
+        .finally(function () {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        });
+    });
+});
+</script>
 {% endblock %}
