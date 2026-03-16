@@ -5,7 +5,7 @@ Routes pour produits, clients, commandes, stock et panier.
 
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, flash, abort
+    url_for, session, flash, abort, jsonify
 )
 from config import Config
 from magasin import Magasin
@@ -353,7 +353,11 @@ def customer_edit(customer_id):
                 state=request.form.get("state", "").strip() or None,
                 address_line1=request.form.get("address_line1", "").strip() or None,
                 address_line2=request.form.get("address_line2", "").strip() or None,
-                is_admin=int(request.form["is_admin"]) if request.form.get("is_admin", "") != "" else None,
+                is_admin=(
+                    int(request.form["is_admin"])
+                    if request.form.get("is_admin", "") != ""
+                    else None
+                ),
             )
             flash("Client modifié avec succès.", "success")
             return redirect(url_for("customers_list"))
@@ -640,6 +644,44 @@ def stock_update(stock_id):
         flash(str(e), "error")
 
     return redirect(url_for("stock_list"))
+
+
+# ------------------------------------------------------------------ #
+#  API – Autocomplétion
+# ------------------------------------------------------------------ #
+
+@app.route("/api/cities")
+def api_cities():
+    """Retourne les villes uniques (JSON) pour l'autocomplétion."""
+    query = request.args.get("q", "").strip().lower()
+    cities = magasin.get_unique_cities()
+    if query:
+        cities = [c for c in cities if query in c.lower()]
+    return jsonify(cities[:50])
+
+
+@app.route("/api/states")
+def api_states():
+    """Retourne les régions/états uniques (JSON) pour l'autocomplétion."""
+    query = request.args.get("q", "").strip().lower()
+    states = magasin.get_unique_states()
+    if query:
+        states = [s for s in states if query in s.lower()]
+    return jsonify(states[:50])
+
+
+@app.route("/api/categories")
+def api_categories():
+    """Retourne les catégories de produits uniques (JSON)."""
+    categories = magasin.get_unique_categories()
+    return jsonify(categories)
+
+
+@app.route("/api/platforms")
+def api_platforms():
+    """Retourne les plateformes uniques (JSON)."""
+    platforms = magasin.get_unique_platforms()
+    return jsonify(platforms)
 
 
 # ------------------------------------------------------------------ #

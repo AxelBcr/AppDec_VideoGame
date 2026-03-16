@@ -3,12 +3,18 @@ Magasin – couche métier / accès données.
 Gère les produits, clients, commandes, stocks via MySQL.
 """
 
+import re
+
 import logs
 import pandas as pd
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Patterns compilés pour les validations de format français
+_PHONE_FR_RE = re.compile(r"0[1-9]\d{8}")
+_ZIP_CODE_FR_RE = re.compile(r"\d{5}")
 
 
 class Magasin:
@@ -130,6 +136,71 @@ class Magasin:
             raise ValueError(f"{field_name} trop long.")
         return value
 
+    @staticmethod
+    def _check_phone_fr(value, field_name="Téléphone"):
+        """Vérifie le format français : exactement 10 chiffres commençant par 0."""
+        value = value.strip()
+        if not value:
+            return value
+        digits = re.sub(r"[\s.\-]", "", value)
+        if not _PHONE_FR_RE.fullmatch(digits):
+            raise ValueError(
+                f"{field_name} doit contenir 10 chiffres "
+                f"et commencer par 0 (format français)."
+            )
+        return digits
+
+    @staticmethod
+    def _check_zip_code_fr(value, field_name="Code postal"):
+        """Vérifie le format français : exactement 5 chiffres."""
+        value = str(value).strip()
+        if not _ZIP_CODE_FR_RE.fullmatch(value):
+            raise ValueError(
+                f"{field_name} doit contenir exactement 5 chiffres "
+                f"(format français)."
+            )
+        return value
+
+    # ------------------------------------------------------------------ #
+    #  Données d'autocomplétion
+    # ------------------------------------------------------------------ #
+
+    def get_unique_cities(self):
+        """Retourne la liste des villes uniques depuis la géolocalisation."""
+        if self.geolocation.empty:
+            return []
+        return sorted(
+            self.geolocation["geolocation_city"]
+            .dropna().unique().tolist()
+        )
+
+    def get_unique_states(self):
+        """Retourne la liste des régions/états uniques."""
+        if self.geolocation.empty:
+            return []
+        return sorted(
+            self.geolocation["geolocation_state"]
+            .dropna().unique().tolist()
+        )
+
+    def get_unique_categories(self):
+        """Retourne la liste des catégories de produits uniques."""
+        if self.products.empty:
+            return []
+        return sorted(
+            self.products["product_category"]
+            .dropna().unique().tolist()
+        )
+
+    def get_unique_platforms(self):
+        """Retourne la liste des plateformes uniques."""
+        if self.products.empty:
+            return []
+        return sorted(
+            self.products["product_platform"]
+            .dropna().unique().tolist()
+        )
+
     # ------------------------------------------------------------------ #
     #  Génération d'IDs robuste (basée sur MAX existant, pas sur count)
     # ------------------------------------------------------------------ #
@@ -205,7 +276,9 @@ class Magasin:
         product_name = self._check_non_empty_string(product_name, "Nom du produit")
         product_category = self._check_non_empty_string(product_category, "Catégorie")
         product_platform = self._check_non_empty_string(product_platform, "Plateforme")
-        product_esrb_rating = self._check_non_empty_string(product_esrb_rating, "Classification ESRB")
+        product_esrb_rating = self._check_non_empty_string(
+            product_esrb_rating, "Classification ESRB"
+        )
         product_release_year = self._check_year(product_release_year, "Année de sortie")
         product_price = self._check_positive_number(product_price, "Prix")
         product_weight_g = self._check_positive_number(product_weight_g, "Poids (g)")
@@ -392,7 +465,10 @@ class Magasin:
     def filter_products_category(self, df, product_category):
         if not isinstance(product_category, str) or product_category.strip() == "":
             return df
-        return df[df["product_category"].str.contains(product_category.strip(), case=False, na=False)]
+        return df[
+            df["product_category"]
+            .str.contains(product_category.strip(), case=False, na=False)
+        ]
 
     # ------------------------------------------------------------------ #
     #  CRUD Clients
@@ -410,6 +486,8 @@ class Magasin:
         last_name = self._check_non_empty_string(last_name, "Nom")
         email = self._check_email(email)
         self._check_non_empty_string(password, "Mot de passe")
+        phone = self._check_phone_fr(phone, "Téléphone")
+        zip_code_prefix = self._check_zip_code_fr(zip_code_prefix, "Code postal")
 
         if email in set(self.customers["email"]):
             raise ValueError("Un client avec cet e-mail existe déjà.")
@@ -486,10 +564,14 @@ class Magasin:
             values.append(generate_password_hash(password))
 
         if phone is not None:
+            phone = self._check_phone_fr(phone, "Téléphone")
             fields.append("phone = %s")
             values.append(phone)
 
         if zip_code_prefix is not None:
+            zip_code_prefix = self._check_zip_code_fr(
+                zip_code_prefix, "Code postal"
+            )
             fields.append("zip_code_prefix = %s")
             values.append(int(zip_code_prefix))
 
@@ -696,7 +778,10 @@ class Magasin:
         df_items["quantity"] = df_items["quantity"].fillna(1)
         df_items["price"] = df_items["price"].fillna(0)
         df_items["freight_value"] = df_items["freight_value"].fillna(0)
-        df_items["line_total"] = df_items["price"] * df_items["quantity"] + df_items["freight_value"]
+        df_items["line_total"] = (
+            df_items["price"] * df_items["quantity"]
+            + df_items["freight_value"]
+        )
 
         totals = df_items.groupby("order_id")["line_total"].sum().reset_index(name="total_price")
 
@@ -719,7 +804,10 @@ class Magasin:
         df_items["quantity"] = df_items["quantity"].fillna(1)
         df_items["price"] = df_items["price"].fillna(0)
         df_items["freight_value"] = df_items["freight_value"].fillna(0)
-        df_items["line_total"] = df_items["price"] * df_items["quantity"] + df_items["freight_value"]
+        df_items["line_total"] = (
+            df_items["price"] * df_items["quantity"]
+            + df_items["freight_value"]
+        )
 
         totals = df_items.groupby("order_id")["line_total"].sum().reset_index(name="total_price")
         df_orders = df_orders.merge(totals, on="order_id", how="left")
@@ -800,7 +888,8 @@ class Magasin:
                 stock_id = stock_row.iloc[0]["stock_id"]
                 new_avail = int(stock_row.iloc[0]["quantity_available"]) + qty
                 cursor.execute(
-                    "UPDATE stock SET quantity_available = %s, last_updated = NOW() WHERE stock_id = %s",
+                    "UPDATE stock SET quantity_available = %s,"
+                    " last_updated = NOW() WHERE stock_id = %s",
                     (new_avail, stock_id)
                 )
 
@@ -868,13 +957,41 @@ class Magasin:
 
         current = row.iloc[0]
 
-        q_stock = int(quantity_in_stock) if quantity_in_stock is not None else int(current["quantity_in_stock"])
-        q_reserved = int(quantity_reserved) if quantity_reserved is not None else int(current["quantity_reserved"])
-        min_level = int(min_stock_level) if min_stock_level is not None else int(current["min_stock_level"])
-        reorder_val = int(reorder_point) if reorder_point is not None else int(current["reorder_point"])
-        seller = seller_id.strip() if (seller_id and seller_id.strip()) else current["seller_id"]
-        wh_loc = warehouse_location.strip() if (warehouse_location and warehouse_location.strip()) else current["warehouse_location"]
-        cond = stock_condition.strip() if (stock_condition and stock_condition.strip()) else current["stock_condition"]
+        q_stock = (
+            int(quantity_in_stock)
+            if quantity_in_stock is not None
+            else int(current["quantity_in_stock"])
+        )
+        q_reserved = (
+            int(quantity_reserved)
+            if quantity_reserved is not None
+            else int(current["quantity_reserved"])
+        )
+        min_level = (
+            int(min_stock_level)
+            if min_stock_level is not None
+            else int(current["min_stock_level"])
+        )
+        reorder_val = (
+            int(reorder_point)
+            if reorder_point is not None
+            else int(current["reorder_point"])
+        )
+        seller = (
+            seller_id.strip()
+            if (seller_id and seller_id.strip())
+            else current["seller_id"]
+        )
+        wh_loc = (
+            warehouse_location.strip()
+            if (warehouse_location and warehouse_location.strip())
+            else current["warehouse_location"]
+        )
+        cond = (
+            stock_condition.strip()
+            if (stock_condition and stock_condition.strip())
+            else current["stock_condition"]
+        )
 
         q_available = q_stock - q_reserved
         if q_available < 0:

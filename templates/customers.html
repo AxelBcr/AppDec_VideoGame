@@ -22,11 +22,23 @@
             <label>Prénom <input type="text" name="first_name" required></label>
             <label>Nom <input type="text" name="last_name" required></label>
             <label>E-mail <input type="email" name="email" required></label>
-            <label>Mot de passe <input type="password" name="password" required autocomplete="new-password"></label>
-            <label>Téléphone <input type="text" name="phone"></label>
-            <label>Code postal <input type="text" name="zip_code_prefix" required></label>
-            <label>Ville <input type="text" name="city" required></label>
-            <label>Région <input type="text" name="state" required></label>
+            <label>Mot de passe <input type="password" name="password" required autocomplete="new-password" minlength="4"></label>
+            <label>Téléphone
+                <input type="tel" name="phone" pattern="0[1-9]\d{8}" maxlength="10"
+                       placeholder="0612345678" title="10 chiffres commençant par 0">
+            </label>
+            <label>Code postal
+                <input type="text" name="zip_code_prefix" pattern="\d{5}" maxlength="5"
+                       required placeholder="75001" title="5 chiffres (format français)">
+            </label>
+            <label>Ville
+                <input type="text" name="city" required list="cities-list"
+                       autocomplete="address-level2">
+            </label>
+            <label>Région
+                <input type="text" name="state" required list="states-list"
+                       autocomplete="address-level1">
+            </label>
             <label>Adresse ligne 1 <input type="text" name="address_line1"></label>
             <label>Adresse ligne 2 <input type="text" name="address_line2"></label>
             <label>Admin ?
@@ -39,6 +51,10 @@
         </form>
     </details>
     {% endif %}
+
+    <!-- Datalists pour autocomplétion -->
+    <datalist id="cities-list"></datalist>
+    <datalist id="states-list"></datalist>
 
     <table class="data-table">
         <thead>

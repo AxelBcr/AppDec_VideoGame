@@ -22,9 +22,17 @@
         <summary><h3>+ Ajouter un produit</h3></summary>
         <form method="post" action="{{ url_for('products_add') }}" class="entity-form">
             <label>Nom <input type="text" name="name" required></label>
-            <label>Catégorie <input type="text" name="category" required></label>
-            <label>Plateforme <input type="text" name="platform" placeholder="PS5, Switch, PC..." required></label>
-            <label>ESRB / PEGI <input type="text" name="esrb" placeholder="3+, 7+, 16+..." required></label>
+            <label>Catégorie
+                <input type="text" name="category" required list="categories-list">
+            </label>
+            <label>Plateforme
+                <input type="text" name="platform" required list="platforms-list"
+                       placeholder="PS5, Switch, PC...">
+            </label>
+            <label>ESRB / PEGI
+                <input type="text" name="esrb" required list="esrb-list"
+                       placeholder="3+, 7+, 16+...">
+            </label>
             <label>Année <input type="number" name="year" min="1970" required></label>
             <label>Prix (€) <input type="number" name="price" step="0.01" min="0.01" required></label>
             <label>Poids (g) <input type="number" name="weight" min="1" required></label>
@@ -33,6 +41,21 @@
         </form>
     </details>
     {% endif %}
+
+    <!-- Datalists pour autocomplétion -->
+    <datalist id="categories-list"></datalist>
+    <datalist id="platforms-list"></datalist>
+    <datalist id="esrb-list">
+        <option value="3+">
+        <option value="7+">
+        <option value="12+">
+        <option value="16+">
+        <option value="18+">
+        <option value="Everyone">
+        <option value="Everyone 10+">
+        <option value="Teen">
+        <option value="Mature">
+    </datalist>
 
     <table class="data-table">
         <thead>

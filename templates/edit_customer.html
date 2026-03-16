@@ -16,19 +16,25 @@
             <input type="email" name="email" value="{{ customer.email }}" required>
         </label>
         <label>Nouveau mot de passe (laisser vide pour ne pas changer)
-            <input type="password" name="password" autocomplete="new-password">
+            <input type="password" name="password" autocomplete="new-password" minlength="4">
         </label>
         <label>Téléphone
-            <input type="text" name="phone" value="{{ customer.phone or '' }}">
+            <input type="tel" name="phone" value="{{ customer.phone or '' }}"
+                   pattern="0[1-9]\d{8}" maxlength="10"
+                   placeholder="0612345678" title="10 chiffres commençant par 0">
         </label>
         <label>Code postal
-            <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}">
+            <input type="text" name="zip_code_prefix" value="{{ customer.zip_code_prefix }}"
+                   pattern="\d{5}" maxlength="5"
+                   placeholder="75001" title="5 chiffres (format français)">
         </label>
         <label>Ville
-            <input type="text" name="city" value="{{ customer.city }}">
+            <input type="text" name="city" value="{{ customer.city }}"
+                   list="cities-list" autocomplete="address-level2">
         </label>
         <label>Région / État
-            <input type="text" name="state" value="{{ customer.state }}">
+            <input type="text" name="state" value="{{ customer.state }}"
+                   list="states-list" autocomplete="address-level1">
         </label>
         <label>Adresse ligne 1
             <input type="text" name="address_line1" value="{{ customer.address_line1 or '' }}">
@@ -49,5 +55,9 @@
             <a href="{{ url_for('customers_list') }}" class="btn-back">Annuler</a>
         </div>
     </form>
+
+    <!-- Datalists pour autocomplétion -->
+    <datalist id="cities-list"></datalist>
+    <datalist id="states-list"></datalist>
 </section>
 {% endblock %}

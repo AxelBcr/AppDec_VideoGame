@@ -55,5 +55,176 @@
 <footer>
     <p>&copy; 2025-2026 GameStore – Projet UCO</p>
 </footer>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Validation dynamique des formulaires                              */
+/* ------------------------------------------------------------------ */
+(function () {
+    "use strict";
+
+    /**
+     * Affiche un message d'erreur sous le champ concerné.
+     */
+    function showError(input, message) {
+        clearError(input);
+        input.classList.add("field-invalid");
+        input.classList.remove("field-valid");
+        var span = document.createElement("span");
+        span.className = "field-error-msg";
+        span.textContent = message;
+        input.parentNode.appendChild(span);
+    }
+
+    /**
+     * Supprime le message d'erreur d'un champ.
+     */
+    function clearError(input) {
+        input.classList.remove("field-invalid");
+        var parent = input.parentNode;
+        var msg = parent.querySelector(".field-error-msg");
+        if (msg) parent.removeChild(msg);
+    }
+
+    /**
+     * Marque le champ comme valide.
+     */
+    function markValid(input) {
+        clearError(input);
+        if (input.value.trim() !== "") {
+            input.classList.add("field-valid");
+        }
+    }
+
+    /**
+     * Valide un champ individuellement.
+     */
+    function validateField(input) {
+        var value = input.value.trim();
+        var name = input.getAttribute("name") || "";
+
+        /* Champ requis vide */
+        if (input.hasAttribute("required") && value === "") {
+            showError(input, "Ce champ est obligatoire.");
+            return false;
+        }
+
+        /* Téléphone français : 10 chiffres commençant par 0 */
+        if (name === "phone" && value !== "") {
+            var digits = value.replace(/[\s.-]/g, "");
+            if (!/^0[1-9]\d{8}$/.test(digits)) {
+                showError(input, "Format attendu : 10 chiffres commençant par 0.");
+                return false;
+            }
+        }
+
+        /* Code postal français : 5 chiffres */
+        if (name === "zip_code_prefix" && value !== "") {
+            if (!/^\d{5}$/.test(value)) {
+                showError(input, "Le code postal doit contenir 5 chiffres.");
+                return false;
+            }
+        }
+
+        /* E-mail basique */
+        if (input.type === "email" && value !== "") {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                showError(input, "Adresse e-mail invalide.");
+                return false;
+            }
+        }
+
+        /* Prix / Poids : nombre positif */
+        if ((name === "price" || name === "weight") && value !== "") {
+            if (isNaN(value) || Number(value) <= 0) {
+                showError(input, "La valeur doit être un nombre positif.");
+                return false;
+            }
+        }
+
+        /* Année */
+        if (name === "year" && value !== "") {
+            var year = parseInt(value, 10);
+            var currentYear = new Date().getFullYear();
+            if (isNaN(year) || year < 1970 || year > currentYear + 2) {
+                showError(input, "Année entre 1970 et " + (currentYear + 2) + ".");
+                return false;
+            }
+        }
+
+        /* Mot de passe (uniquement pour les champs required) */
+        if (name === "password" && input.hasAttribute("required") && value !== "") {
+            if (value.length < 4) {
+                showError(input, "Le mot de passe doit contenir au moins 4 caractères.");
+                return false;
+            }
+        }
+
+        markValid(input);
+        return true;
+    }
+
+    /* Attacher la validation sur chaque champ de formulaire */
+    document.addEventListener("DOMContentLoaded", function () {
+        var forms = document.querySelectorAll("form.entity-form, .form-container form");
+        forms.forEach(function (form) {
+            var inputs = form.querySelectorAll("input, select, textarea");
+            inputs.forEach(function (input) {
+                input.addEventListener("blur", function () {
+                    validateField(input);
+                });
+                input.addEventListener("input", function () {
+                    if (input.classList.contains("field-invalid")) {
+                        validateField(input);
+                    }
+                });
+            });
+
+            form.addEventListener("submit", function (e) {
+                var allValid = true;
+                inputs.forEach(function (input) {
+                    if (!validateField(input)) {
+                        allValid = false;
+                    }
+                });
+                if (!allValid) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Autocomplétion – charge les suggestions depuis l'API          */
+    /* -------------------------------------------------------------- */
+
+    /**
+     * Peuple un <datalist> existant avec les valeurs retournées par l'API.
+     */
+    function loadDatalist(datalistId, apiUrl) {
+        var dl = document.getElementById(datalistId);
+        if (!dl) return;
+        fetch(apiUrl)
+            .then(function (r) { return r.json(); })
+            .then(function (items) {
+                dl.innerHTML = "";
+                items.forEach(function (item) {
+                    var opt = document.createElement("option");
+                    opt.value = item;
+                    dl.appendChild(opt);
+                });
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadDatalist("cities-list", "/api/cities");
+        loadDatalist("states-list", "/api/states");
+        loadDatalist("categories-list", "/api/categories");
+        loadDatalist("platforms-list", "/api/platforms");
+    });
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
