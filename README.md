@@ -975,7 +975,7 @@ Les donnees de test incluent des comptes pre-configures. L'administrateur princi
 
 | Champ | Valeur |
 |---|---|
-| Email | *(voir les donnees insérées dans le SQL)* |
+| Email | *(voir les donnees inserees dans le SQL)* |
 | Role | Administrateur (`is_admin = 1`) |
 
 ### Parcours client type
