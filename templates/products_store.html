@@ -41,6 +41,17 @@
                 <p class="product-category">{{ p.product_category }}</p>
                 <p class="product-price">{{ "%.2f"|format(p.product_price) }} €</p>
 
+                {% if p.review_count and p.review_count > 0 %}
+                <div class="product-rating">
+                    <span class="rating-stars">
+                        {% for i in range(1, 6) %}
+                        <span class="star {{ 'star-filled' if i <= (p.avg_score | round(0, 'floor') | int) else 'star-empty' }}">★</span>
+                        {% endfor %}
+                    </span>
+                    <span class="rating-text">{{ p.avg_score }}/5 ({{ p.review_count }} avis)</span>
+                </div>
+                {% endif %}
+
                 {% if p.product_description %}
                 <p class="product-description">{{ p.product_description }}</p>
                 {% endif %}

@@ -26,7 +26,7 @@
         {% if is_admin %}
         <div class="order-info-card">
             <h3>Changer le statut</h3>
-            <form method="post" action="{{ url_for('order_update_status', order_id=order.order_id) }}" class="status-form">
+            <form method="post" action="{{ url_for('order_update_status', order_id=order.order_id) }}" class="status-form ajax-form">
                 <select name="status">
                     {% for s in ['created', 'approved', 'shipped', 'delivered', 'cancelled'] %}
                     <option value="{{ s }}" {{ 'selected' if order.order_status == s }}>{{ s }}</option>
@@ -41,7 +41,8 @@
         <div class="order-info-card">
             <h3>Annuler la commande</h3>
             <form method="post" action="{{ url_for('order_cancel', order_id=order.order_id) }}"
-                  onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette commande ?');">
+                  class="ajax-form"
+                  data-confirm="Êtes-vous sûr de vouloir annuler cette commande ?">
                 <button type="submit" class="btn-danger">Annuler la commande</button>
             </form>
         </div>
@@ -79,6 +80,128 @@
     <p>Aucun article dans cette commande.</p>
     {% endif %}
 
+    {# ---- Section Avis ---- #}
+    <div id="review-section" class="review-section">
+        <h3>⭐ Avis client</h3>
+
+        {% if review %}
+        <div class="review-card" id="review-display">
+            <div class="review-stars">
+                {% for i in range(1, 6) %}
+                <span class="star {{ 'star-filled' if i <= review.review_score else 'star-empty' }}">★</span>
+                {% endfor %}
+                <span class="review-score-text">{{ review.review_score }}/5</span>
+            </div>
+            {% if review.review_comment_title %}
+            <h4 class="review-title">{{ review.review_comment_title }}</h4>
+            {% endif %}
+            {% if review.review_comment_message %}
+            <p class="review-message">{{ review.review_comment_message }}</p>
+            {% endif %}
+            <small class="review-date">Posté le {{ review.review_creation_date }}</small>
+
+            {% if not is_admin %}
+            <div class="review-actions">
+                <button type="button" class="btn-edit" onclick="toggleEditReview()">Modifier</button>
+                <form method="post" action="{{ url_for('review_delete', review_id=review.review_id) }}"
+                      class="ajax-form" style="display:inline;"
+                      data-confirm="Supprimer votre avis ?"
+                      data-on-success="removeReview">
+                    <button type="submit" class="btn-danger-sm">Supprimer</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if not is_admin %}
+        <div id="review-edit-form" style="display:none;">
+            <form method="post" action="{{ url_for('review_edit', review_id=review.review_id) }}"
+                  class="entity-form ajax-form" data-on-success="updateReview">
+                <label>Note
+                    <div class="star-rating-input">
+                        {% for i in range(5, 0, -1) %}
+                        <input type="radio" name="review_score" value="{{ i }}" id="edit-star{{ i }}"
+                               {{ 'checked' if i == review.review_score }}>
+                        <label for="edit-star{{ i }}">★</label>
+                        {% endfor %}
+                    </div>
+                </label>
+                <label>Titre
+                    <input type="text" name="review_comment_title" value="{{ review.review_comment_title or '' }}" maxlength="255">
+                </label>
+                <label>Commentaire
+                    <textarea name="review_comment_message" rows="3">{{ review.review_comment_message or '' }}</textarea>
+                </label>
+                <div style="display:flex; gap:0.5rem;">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" class="btn-back" onclick="toggleEditReview()">Annuler</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        {% elif not is_admin and order.order_status == 'delivered' %}
+        <div id="review-add-form">
+            <p>Vous avez reçu votre commande ? Laissez un avis !</p>
+            <form method="post" action="{{ url_for('review_add', order_id=order.order_id) }}"
+                  class="entity-form ajax-form" data-on-success="showNewReview">
+                <label>Note
+                    <div class="star-rating-input">
+                        {% for i in range(5, 0, -1) %}
+                        <input type="radio" name="review_score" value="{{ i }}" id="add-star{{ i }}"
+                               {{ 'checked' if i == 5 }}>
+                        <label for="add-star{{ i }}">★</label>
+                        {% endfor %}
+                    </div>
+                </label>
+                <label>Titre
+                    <input type="text" name="review_comment_title" placeholder="Résumé de votre avis" maxlength="255">
+                </label>
+                <label>Commentaire
+                    <textarea name="review_comment_message" rows="3" placeholder="Décrivez votre expérience…"></textarea>
+                </label>
+                <button type="submit">Envoyer mon avis</button>
+            </form>
+        </div>
+
+        {% elif not is_admin %}
+        <p class="review-info">Les avis ne peuvent être laissés que sur les commandes livrées.</p>
+        {% else %}
+        <p class="review-info">Aucun avis pour cette commande.</p>
+        {% endif %}
+    </div>
+
     <a href="{{ url_for('orders_list') }}" class="btn-back">← Retour aux commandes</a>
 </section>
+
+<script>
+function toggleEditReview() {
+    var display = document.getElementById('review-display');
+    var form = document.getElementById('review-edit-form');
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        display.style.display = 'none';
+    } else {
+        form.style.display = 'none';
+        display.style.display = 'block';
+    }
+}
+
+function updateReview(data) {
+    if (data.review) {
+        location.reload();
+    }
+}
+
+function showNewReview(data) {
+    if (data.review) {
+        location.reload();
+    }
+}
+
+function removeReview() {
+    var section = document.getElementById('review-section');
+    section.innerHTML = '<h3>⭐ Avis client</h3><p class="review-info">Avis supprimé.</p>';
+}
+</script>
 {% endblock %}

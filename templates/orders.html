@@ -33,7 +33,8 @@
                     {% if o.order_status in ['created', 'approved'] %}
                     <form method="post"
                           action="{{ url_for('order_cancel', order_id=o.order_id) }}"
-                          onsubmit="return confirm('Annuler cette commande ?');"
+                          class="ajax-form"
+                          data-confirm="Annuler cette commande ?"
                           style="display:inline;">
                         <button type="submit" class="btn-danger-sm">Annuler</button>
                     </form>

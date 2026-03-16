@@ -173,10 +173,12 @@ def dashboard():
             nb_critical=nb_critical,
         )
     else:
+        recent_reviews = magasin.get_recent_reviews(limit=6)
         return render_template(
             "dashboard_client.html",
             user_email=current_user_email(),
-            is_admin=False
+            is_admin=False,
+            recent_reviews=recent_reviews
         )
 
 
@@ -202,6 +204,7 @@ def profile():
     customer = df.iloc[0].to_dict()
 
     if request.method == "POST":
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         try:
             magasin.update_profile(
                 customer_id,
@@ -215,9 +218,14 @@ def profile():
                 address_line1=request.form.get("address_line1", "").strip() or None,
                 address_line2=request.form.get("address_line2", "").strip() or None,
             )
-            flash("Profil mis à jour avec succès.", "success")
+            msg = "Profil mis à jour avec succès."
+            if is_ajax:
+                return jsonify(ok=True, message=msg)
+            flash(msg, "success")
             return redirect(url_for("profile"))
         except ValueError as e:
+            if is_ajax:
+                return jsonify(ok=False, message=str(e))
             flash(str(e), "error")
 
     return render_template(
@@ -264,8 +272,13 @@ def products_list():
             .sum()
             .to_dict()
         )
+        # Compute average ratings for products
+        product_ratings = magasin.get_all_product_ratings()
         for p in products:
             p["stock_available"] = int(stock_avail.get(p["product_id"], 0))
+            rating_info = product_ratings.get(p["product_id"], {})
+            p["avg_score"] = rating_info.get("avg_score")
+            p["review_count"] = rating_info.get("review_count", 0)
         return render_template("products_store.html", products=products, is_admin=False)
 
 
@@ -275,6 +288,7 @@ def products_add():
         flash("Action réservée aux administrateurs.", "error")
         return redirect(url_for("products_list"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     try:
         magasin.add_product(
             request.form.get("name", "").strip(),
@@ -286,8 +300,13 @@ def products_add():
             request.form.get("weight", "").strip(),
             request.form.get("description", "").strip(),
         )
-        flash("Produit ajouté avec succès.", "success")
+        msg = "Produit ajouté avec succès."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
     except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
         flash(str(e), "error")
 
     return redirect(url_for("products_list"))
@@ -320,6 +339,7 @@ def product_edit(product_id):
     product = df.iloc[0].to_dict()
 
     if request.method == "POST":
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         try:
             magasin.modify_products(
                 product_id,
@@ -332,9 +352,14 @@ def product_edit(product_id):
                 new_product_weight_g=request.form.get("weight", "").strip() or None,
                 new_product_description=request.form.get("description", "").strip() or None,
             )
-            flash("Produit modifié avec succès.", "success")
+            msg = "Produit modifié avec succès."
+            if is_ajax:
+                return jsonify(ok=True, message=msg)
+            flash(msg, "success")
             return redirect(url_for("products_list"))
         except ValueError as e:
+            if is_ajax:
+                return jsonify(ok=False, message=str(e))
             flash(str(e), "error")
 
     return render_template("edit_product.html", product=product)
@@ -371,6 +396,7 @@ def customers_add():
         flash("Action réservée aux administrateurs.", "error")
         return redirect(url_for("customers_list"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     try:
         magasin.add_customer(
             request.form.get("first_name", "").strip(),
@@ -385,8 +411,13 @@ def customers_add():
             request.form.get("address_line2", "").strip(),
             int(request.form.get("is_admin", "0")),
         )
-        flash("Client ajouté avec succès.", "success")
+        msg = "Client ajouté avec succès."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
     except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
         flash(str(e), "error")
 
     return redirect(url_for("customers_list"))
@@ -419,6 +450,7 @@ def customer_edit(customer_id):
     customer = df.iloc[0].to_dict()
 
     if request.method == "POST":
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         try:
             magasin.modify_customer(
                 customer_id,
@@ -438,9 +470,14 @@ def customer_edit(customer_id):
                     else None
                 ),
             )
-            flash("Client modifié avec succès.", "success")
+            msg = "Client modifié avec succès."
+            if is_ajax:
+                return jsonify(ok=True, message=msg)
+            flash(msg, "success")
             return redirect(url_for("customers_list"))
         except ValueError as e:
+            if is_ajax:
+                return jsonify(ok=False, message=str(e))
             flash(str(e), "error")
 
     return render_template("edit_customer.html", customer=customer)
@@ -519,11 +556,17 @@ def cart_remove(product_id):
     if not require_login():
         return redirect(url_for("login"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     cart = get_cart()
     if product_id in cart:
         cart.pop(product_id)
         save_cart(cart)
+        if is_ajax:
+            return jsonify(ok=True, message="Produit retiré du panier.")
         flash("Produit retiré du panier.", "info")
+    else:
+        if is_ajax:
+            return jsonify(ok=False, message="Produit non trouvé dans le panier.")
     return redirect(url_for("cart_view"))
 
 
@@ -532,6 +575,7 @@ def cart_update():
     if not require_login():
         return redirect(url_for("login"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     cart = get_cart()
     for field, value in request.form.items():
         if not field.startswith("qty_"):
@@ -547,6 +591,8 @@ def cart_update():
             cart[pid] = qty
 
     save_cart(cart)
+    if is_ajax:
+        return jsonify(ok=True, message="Panier mis à jour.")
     flash("Panier mis à jour.", "success")
     return redirect(url_for("cart_view"))
 
@@ -650,11 +696,15 @@ def order_detail(order_id):
     items = items_df.to_dict(orient="records")
     total = float(items_df["line_total"].sum()) if not items_df.empty else 0.0
 
+    # Récupérer l'avis existant pour cette commande
+    review = magasin.get_review_for_order(order_id)
+
     return render_template(
         "order_detail.html",
         order=order,
         items=items,
         total=total,
+        review=review,
         is_admin=current_user_is_admin()
     )
 
@@ -666,11 +716,17 @@ def order_update_status(order_id):
         flash("Action réservée aux administrateurs.", "error")
         return redirect(url_for("orders_list"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     new_status = request.form.get("status", "").strip()
     try:
         magasin.update_order_status(order_id, new_status)
-        flash(f"Commande {order_id} → {new_status}.", "success")
+        msg = f"Commande {order_id} → {new_status}."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
     except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
         flash(str(e), "error")
 
     return redirect(url_for("order_detail", order_id=order_id))
@@ -682,8 +738,12 @@ def order_cancel(order_id):
     if not require_login():
         return redirect(url_for("login"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     order_row = magasin.orders[magasin.orders["order_id"] == order_id]
     if order_row.empty:
+        if is_ajax:
+            return jsonify(ok=False, message="Commande introuvable.")
         flash("Commande introuvable.", "error")
         return redirect(url_for("orders_list"))
 
@@ -692,20 +752,166 @@ def order_cancel(order_id):
     # Vérifier propriété ou admin
     if not current_user_is_admin():
         if order["customer_id"] != current_customer_id():
+            if is_ajax:
+                return jsonify(ok=False, message="Vous n'avez pas accès à cette commande.")
             flash("Vous n'avez pas accès à cette commande.", "error")
             return redirect(url_for("orders_list"))
 
     if order["order_status"] not in ("created", "approved"):
-        flash("Cette commande ne peut plus être annulée.", "error")
+        msg = "Cette commande ne peut plus être annulée."
+        if is_ajax:
+            return jsonify(ok=False, message=msg)
+        flash(msg, "error")
         return redirect(url_for("order_detail", order_id=order_id))
 
     try:
         magasin.update_order_status(order_id, "cancelled")
-        flash(f"Commande {order_id} annulée.", "success")
+        msg = f"Commande {order_id} annulée."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
     except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
         flash(str(e), "error")
 
     return redirect(url_for("order_detail", order_id=order_id))
+
+
+# ------------------------------------------------------------------ #
+#  Routes – Avis clients
+# ------------------------------------------------------------------ #
+
+@app.route("/reviews/add/<order_id>", methods=["POST"])
+def review_add(order_id):
+    """Ajouter un avis pour une commande livrée."""
+    if not require_login():
+        return redirect(url_for("login"))
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    # Vérifier que la commande appartient au client
+    order_row = magasin.orders[magasin.orders["order_id"] == order_id]
+    if order_row.empty:
+        msg = "Commande introuvable."
+        if is_ajax:
+            return jsonify(ok=False, message=msg)
+        flash(msg, "error")
+        return redirect(url_for("orders_list"))
+
+    order = order_row.iloc[0]
+    if not current_user_is_admin() and order["customer_id"] != current_customer_id():
+        msg = "Vous n'avez pas accès à cette commande."
+        if is_ajax:
+            return jsonify(ok=False, message=msg)
+        flash(msg, "error")
+        return redirect(url_for("orders_list"))
+
+    try:
+        magasin.add_review(
+            order_id,
+            request.form.get("review_score", ""),
+            request.form.get("review_comment_title", ""),
+            request.form.get("review_comment_message", ""),
+        )
+        msg = "Avis ajouté avec succès."
+        if is_ajax:
+            review = magasin.get_review_for_order(order_id)
+            return jsonify(ok=True, message=msg, review=review)
+        flash(msg, "success")
+    except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
+        flash(str(e), "error")
+
+    return redirect(url_for("order_detail", order_id=order_id))
+
+
+@app.route("/reviews/edit/<review_id>", methods=["POST"])
+def review_edit(review_id):
+    """Modifier un avis existant."""
+    if not require_login():
+        return redirect(url_for("login"))
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    # Vérifier que l'avis appartient au client
+    review_row = magasin.order_reviews[magasin.order_reviews["review_id"] == review_id]
+    if review_row.empty:
+        msg = "Avis introuvable."
+        if is_ajax:
+            return jsonify(ok=False, message=msg)
+        flash(msg, "error")
+        return redirect(url_for("orders_list"))
+
+    oid = review_row.iloc[0]["order_id"]
+    order_row = magasin.orders[magasin.orders["order_id"] == oid]
+    if not order_row.empty and not current_user_is_admin():
+        if order_row.iloc[0]["customer_id"] != current_customer_id():
+            msg = "Vous n'avez pas le droit de modifier cet avis."
+            if is_ajax:
+                return jsonify(ok=False, message=msg)
+            flash(msg, "error")
+            return redirect(url_for("orders_list"))
+
+    try:
+        magasin.update_review(
+            review_id,
+            review_score=request.form.get("review_score", "").strip() or None,
+            review_comment_title=request.form.get("review_comment_title", ""),
+            review_comment_message=request.form.get("review_comment_message", ""),
+        )
+        msg = "Avis modifié avec succès."
+        if is_ajax:
+            review = magasin.get_review_for_order(oid)
+            return jsonify(ok=True, message=msg, review=review)
+        flash(msg, "success")
+    except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
+        flash(str(e), "error")
+
+    return redirect(url_for("order_detail", order_id=oid))
+
+
+@app.route("/reviews/delete/<review_id>", methods=["POST"])
+def review_delete(review_id):
+    """Supprimer un avis."""
+    if not require_login():
+        return redirect(url_for("login"))
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    review_row = magasin.order_reviews[magasin.order_reviews["review_id"] == review_id]
+    if review_row.empty:
+        msg = "Avis introuvable."
+        if is_ajax:
+            return jsonify(ok=False, message=msg)
+        flash(msg, "error")
+        return redirect(url_for("orders_list"))
+
+    oid = review_row.iloc[0]["order_id"]
+    order_row = magasin.orders[magasin.orders["order_id"] == oid]
+    if not order_row.empty and not current_user_is_admin():
+        if order_row.iloc[0]["customer_id"] != current_customer_id():
+            msg = "Vous n'avez pas le droit de supprimer cet avis."
+            if is_ajax:
+                return jsonify(ok=False, message=msg)
+            flash(msg, "error")
+            return redirect(url_for("orders_list"))
+
+    try:
+        magasin.delete_review(review_id)
+        msg = "Avis supprimé."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
+    except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
+        flash(str(e), "error")
+
+    return redirect(url_for("order_detail", order_id=oid))
 
 
 # ------------------------------------------------------------------ #
@@ -729,6 +935,8 @@ def stock_update(stock_id):
         flash("Accès réservé aux administrateurs.", "error")
         return redirect(url_for("dashboard"))
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     def parse_int(val):
         val = val.strip() if val else ""
         return int(val) if val else None
@@ -744,8 +952,13 @@ def stock_update(stock_id):
             warehouse_location=request.form.get("warehouse_location", "").strip() or None,
             stock_condition=request.form.get("stock_condition", "").strip() or None,
         )
-        flash(f"Stock {stock_id} mis à jour.", "success")
+        msg = f"Stock {stock_id} mis à jour."
+        if is_ajax:
+            return jsonify(ok=True, message=msg)
+        flash(msg, "success")
     except ValueError as e:
+        if is_ajax:
+            return jsonify(ok=False, message=str(e))
         flash(str(e), "error")
 
     return redirect(url_for("stock_list"))

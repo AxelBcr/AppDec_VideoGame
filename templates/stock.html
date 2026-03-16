@@ -31,7 +31,7 @@
                 {{ s.product_name }}<br>
                 <small>{{ s.product_id }}</small>
             </td>
-            <form method="post" action="{{ url_for('stock_update', stock_id=s.stock_id) }}">
+            <form method="post" action="{{ url_for('stock_update', stock_id=s.stock_id) }}" class="ajax-form">
             <td><input type="text" name="seller_id" value="{{ s.seller_id }}" style="width:90px;"></td>
             <td><input type="number" name="quantity_in_stock" value="{{ s.quantity_in_stock }}" min="0" style="width:65px;"></td>
             <td><input type="number" name="quantity_reserved" value="{{ s.quantity_reserved }}" min="0" style="width:65px;"></td>

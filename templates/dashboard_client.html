@@ -51,6 +51,35 @@
     </div>
 </section>
 
+{% if recent_reviews %}
+<section class="store-section">
+    <h2>⭐ Derniers avis clients</h2>
+    <div class="reviews-grid">
+        {% for r in recent_reviews %}
+        <div class="review-card-mini">
+            <div class="review-stars">
+                {% for i in range(1, 6) %}
+                <span class="star {{ 'star-filled' if i <= r.review_score else 'star-empty' }}">★</span>
+                {% endfor %}
+            </div>
+            {% if r.review_comment_title %}
+            <h4 class="review-title">{{ r.review_comment_title }}</h4>
+            {% endif %}
+            {% if r.review_comment_message %}
+            <p class="review-message">{{ r.review_comment_message[:120] }}{{ '…' if r.review_comment_message|length > 120 }}</p>
+            {% endif %}
+            <div class="review-meta">
+                {% if r.product_name %}
+                <span class="review-product">🎮 {{ r.product_name }}</span>
+                {% endif %}
+                <span class="review-author">— {{ r.first_name }} {{ r.last_name }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <section class="store-section">
     <h2>Accès rapide</h2>
     <div class="quick-links">

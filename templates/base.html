@@ -326,6 +326,61 @@
         loadDatalist("platforms-list", "/api/platforms");
         loadGeoCache().then(function () { setupGeoCrossAutofill(); });
     });
+
+    /* -------------------------------------------------------------- */
+    /*  AJAX form handler – empêche le rechargement de la page        */
+    /* -------------------------------------------------------------- */
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("form.ajax-form").forEach(function (form) {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                var confirmMsg = form.getAttribute("data-confirm");
+                if (confirmMsg && !confirm(confirmMsg)) return;
+
+                var btn = form.querySelector("button[type='submit']");
+                var originalText = btn ? btn.textContent : "";
+                if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+                fetch(form.action, {
+                    method: "POST",
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                    body: new FormData(form)
+                })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    /* Afficher le message de retour */
+                    var container = form.closest("section") || form.parentNode;
+                    var existing = container.querySelector(".ajax-flash");
+                    if (existing) existing.remove();
+
+                    var flash = document.createElement("div");
+                    flash.className = "flash ajax-flash " + (data.ok ? "success" : "error");
+                    flash.textContent = data.message || (data.ok ? "Fait !" : "Erreur");
+                    container.insertBefore(flash, container.firstChild);
+                    setTimeout(function () { flash.remove(); }, 4000);
+
+                    /* Callback personnalisé si défini */
+                    var cb = form.getAttribute("data-on-success");
+                    if (data.ok && cb && typeof window[cb] === "function") {
+                        window[cb](data);
+                    }
+                })
+                .catch(function () {
+                    var container = form.closest("section") || form.parentNode;
+                    var flash = document.createElement("div");
+                    flash.className = "flash ajax-flash error";
+                    flash.textContent = "Erreur réseau.";
+                    container.insertBefore(flash, container.firstChild);
+                    setTimeout(function () { flash.remove(); }, 4000);
+                })
+                .finally(function () {
+                    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+                });
+            });
+        });
+    });
 })();
 </script>
 
