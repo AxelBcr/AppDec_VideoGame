@@ -18,7 +18,7 @@
     {% if is_admin %}
     <details class="add-form-section">
         <summary><h3>+ Ajouter un client</h3></summary>
-        <form method="post" action="{{ url_for('customers_add') }}" class="entity-form">
+        <form method="post" action="{{ url_for('customers_add') }}" class="entity-form ajax-form">
             <label>Prénom <input type="text" name="first_name" required></label>
             <label>Nom <input type="text" name="last_name" required></label>
             <label>E-mail <input type="email" name="email" required></label>

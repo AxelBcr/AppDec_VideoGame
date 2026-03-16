@@ -20,7 +20,7 @@
     {% if is_admin %}
     <details class="add-form-section">
         <summary><h3>+ Ajouter un produit</h3></summary>
-        <form method="post" action="{{ url_for('products_add') }}" class="entity-form">
+        <form method="post" action="{{ url_for('products_add') }}" class="entity-form ajax-form">
             <label>Nom <input type="text" name="name" required></label>
             <label>Catégorie
                 <input type="text" name="category" required list="categories-list">

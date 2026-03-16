@@ -27,7 +27,7 @@
                 <td>{{ p.product_platform }}</td>
                 <td>{{ "%.2f"|format(p.product_price) }} €</td>
                 <td>
-                    <form method="post" action="{{ url_for('cart_update') }}" style="display:inline;">
+                    <form method="post" action="{{ url_for('cart_update') }}" style="display:inline;" class="ajax-form">
                         <input type="number" name="qty_{{ p.product_id }}"
                                value="{{ p.quantity }}" min="0" style="width:60px;">
                         <button type="submit" style="padding:0.3rem 0.5rem; font-size:0.8rem;">OK</button>
@@ -36,7 +36,7 @@
                 <td>{{ "%.2f"|format(p.line_total) }} €</td>
                 <td>
                     <form method="post" action="{{ url_for('cart_remove', product_id=p.product_id) }}"
-                          style="display:inline;">
+                          style="display:inline;" class="ajax-form">
                         <button type="submit" class="btn-danger-sm">Retirer</button>
                     </form>
                 </td>

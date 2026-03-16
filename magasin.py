@@ -1327,6 +1327,202 @@ class Magasin:
         self.stock = pd.read_sql("SELECT * FROM stock", self.connection)
 
     # ------------------------------------------------------------------ #
+    #  Avis clients (order_reviews)
+    # ------------------------------------------------------------------ #
+
+    def get_review_for_order(self, order_id):
+        """Retourne l'avis associé à une commande (ou None)."""
+        df = self.order_reviews[self.order_reviews["order_id"] == order_id]
+        if df.empty:
+            return None
+        return df.iloc[0].to_dict()
+
+    def get_reviews_for_product(self, product_id):
+        """
+        Retourne les avis liés à un produit via order_items.
+        Résultat : liste de dicts avec review_score, title, message, date.
+        """
+        # Trouver les order_id contenant ce produit
+        order_ids = self.order_items.loc[
+            self.order_items["product_id"] == product_id, "order_id"
+        ].unique()
+        df = self.order_reviews[self.order_reviews["order_id"].isin(order_ids)].copy()
+        if df.empty:
+            return []
+        # Joindre les infos client via orders
+        df = df.merge(self.orders[["order_id", "customer_id"]], on="order_id", how="left")
+        df = df.merge(
+            self.customers[["customer_id", "first_name", "last_name"]],
+            on="customer_id", how="left"
+        )
+        df = df.sort_values("review_creation_date", ascending=False)
+        return df.to_dict(orient="records")
+
+    def get_product_avg_score(self, product_id):
+        """Retourne la note moyenne et le nombre d'avis pour un produit."""
+        order_ids = self.order_items.loc[
+            self.order_items["product_id"] == product_id, "order_id"
+        ].unique()
+        df = self.order_reviews[self.order_reviews["order_id"].isin(order_ids)]
+        if df.empty:
+            return None, 0
+        return round(float(df["review_score"].mean()), 1), len(df)
+
+    def get_all_product_ratings(self):
+        """
+        Retourne un dict {product_id: {avg_score, review_count}} pour tous les produits.
+        """
+        # Joindre order_items → order_reviews
+        merged = self.order_items[["order_id", "product_id"]].merge(
+            self.order_reviews[["order_id", "review_score"]],
+            on="order_id", how="inner"
+        )
+        if merged.empty:
+            return {}
+        grouped = merged.groupby("product_id")["review_score"].agg(["mean", "count"])
+        result = {}
+        for pid, row in grouped.iterrows():
+            result[pid] = {
+                "avg_score": round(float(row["mean"]), 1),
+                "review_count": int(row["count"]),
+            }
+        return result
+
+    def get_recent_reviews(self, limit=6):
+        """Retourne les N avis les plus récents avec infos produit et client."""
+        df = self.order_reviews.copy()
+        if df.empty:
+            return []
+        df = df.sort_values("review_creation_date", ascending=False).head(limit)
+        # Joindre order → customer
+        df = df.merge(self.orders[["order_id", "customer_id"]], on="order_id", how="left")
+        df = df.merge(
+            self.customers[["customer_id", "first_name", "last_name"]],
+            on="customer_id", how="left"
+        )
+        # Joindre order_items → product (prendre le premier produit de la commande)
+        first_product = self.order_items.drop_duplicates(
+            subset=["order_id"]
+        )[["order_id", "product_id"]]
+        df = df.merge(first_product, on="order_id", how="left")
+        df = df.merge(
+            self.products[["product_id", "product_name", "product_image"]],
+            on="product_id", how="left"
+        )
+        return df.to_dict(orient="records")
+
+    def add_review(self, order_id, review_score, review_comment_title,
+                   review_comment_message):
+        """Ajoute un avis pour une commande."""
+        # Vérifier que la commande existe
+        if order_id not in set(self.orders["order_id"]):
+            raise ValueError("Commande introuvable.")
+
+        # Vérifier qu'il n'y a pas déjà un avis
+        existing = self.order_reviews[self.order_reviews["order_id"] == order_id]
+        if not existing.empty:
+            raise ValueError("Un avis existe déjà pour cette commande.")
+
+        # Valider le score
+        try:
+            score = int(review_score)
+        except (TypeError, ValueError):
+            raise ValueError("La note doit être un nombre entier.")
+        if score < 1 or score > 5:
+            raise ValueError("La note doit être entre 1 et 5.")
+
+        review_id = self._next_id(self.order_reviews, "review_id", "REVIEW_", width=6)
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """INSERT INTO order_reviews
+                   (review_id, order_id, review_score,
+                    review_comment_title, review_comment_message,
+                    review_creation_date)
+                   VALUES (%s, %s, %s, %s, %s, NOW())""",
+                (review_id, order_id, score,
+                 review_comment_title.strip() if review_comment_title else None,
+                 review_comment_message.strip() if review_comment_message else None)
+            )
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.order_reviews = pd.read_sql("SELECT * FROM order_reviews", self.connection)
+        return review_id
+
+    def update_review(self, review_id, review_score=None,
+                      review_comment_title=None, review_comment_message=None):
+        """Met à jour un avis existant."""
+        row = self.order_reviews[self.order_reviews["review_id"] == review_id]
+        if row.empty:
+            raise ValueError("Avis introuvable.")
+
+        current = row.iloc[0]
+        score = current["review_score"]
+        title = current["review_comment_title"]
+        message = current["review_comment_message"]
+
+        if review_score is not None:
+            try:
+                score = int(review_score)
+            except (TypeError, ValueError):
+                raise ValueError("La note doit être un nombre entier.")
+            if score < 1 or score > 5:
+                raise ValueError("La note doit être entre 1 et 5.")
+
+        if review_comment_title is not None:
+            title = review_comment_title.strip() if review_comment_title else None
+        if review_comment_message is not None:
+            message = review_comment_message.strip() if review_comment_message else None
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """UPDATE order_reviews
+                   SET review_score = %s, review_comment_title = %s,
+                       review_comment_message = %s
+                   WHERE review_id = %s""",
+                (score, title, message, review_id)
+            )
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.order_reviews = pd.read_sql("SELECT * FROM order_reviews", self.connection)
+
+    def delete_review(self, review_id):
+        """Supprime un avis."""
+        row = self.order_reviews[self.order_reviews["review_id"] == review_id]
+        if row.empty:
+            raise ValueError("Avis introuvable.")
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                "DELETE FROM order_reviews WHERE review_id = %s",
+                (review_id,)
+            )
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.order_reviews = pd.read_sql("SELECT * FROM order_reviews", self.connection)
+
+    # ------------------------------------------------------------------ #
     #  Vue globale (analytics)
     # ------------------------------------------------------------------ #
 
