@@ -116,6 +116,30 @@ def login():
     return render_template("login.html")
 
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        try:
+            magasin.register_customer(
+                request.form.get("first_name", "").strip(),
+                request.form.get("last_name", "").strip(),
+                request.form.get("email", "").strip(),
+                request.form.get("password", "").strip(),
+                request.form.get("phone", "").strip(),
+                request.form.get("zip_code_prefix", "").strip(),
+                request.form.get("city", "").strip(),
+                request.form.get("state", "").strip(),
+                request.form.get("address_line1", "").strip(),
+                request.form.get("address_line2", "").strip(),
+            )
+            flash("Compte créé avec succès ! Vous pouvez maintenant vous connecter.", "success")
+            return redirect(url_for("login"))
+        except ValueError as e:
+            flash(str(e), "error")
+
+    return render_template("register.html")
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -154,6 +178,53 @@ def dashboard():
             user_email=current_user_email(),
             is_admin=False
         )
+
+
+# ------------------------------------------------------------------ #
+#  Routes – Profil utilisateur
+# ------------------------------------------------------------------ #
+
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    customer_id = current_customer_id()
+    if not customer_id:
+        flash("Impossible de récupérer votre compte.", "error")
+        return redirect(url_for("dashboard"))
+
+    df = magasin.customers[magasin.customers["customer_id"] == customer_id]
+    if df.empty:
+        flash("Profil introuvable.", "error")
+        return redirect(url_for("dashboard"))
+
+    customer = df.iloc[0].to_dict()
+
+    if request.method == "POST":
+        try:
+            magasin.update_profile(
+                customer_id,
+                first_name=request.form.get("first_name", "").strip() or None,
+                last_name=request.form.get("last_name", "").strip() or None,
+                password=request.form.get("password", "").strip() or None,
+                phone=request.form.get("phone", "").strip() or None,
+                zip_code_prefix=request.form.get("zip_code_prefix", "").strip() or None,
+                city=request.form.get("city", "").strip() or None,
+                state=request.form.get("state", "").strip() or None,
+                address_line1=request.form.get("address_line1", "").strip() or None,
+                address_line2=request.form.get("address_line2", "").strip() or None,
+            )
+            flash("Profil mis à jour avec succès.", "success")
+            return redirect(url_for("profile"))
+        except ValueError as e:
+            flash(str(e), "error")
+
+    return render_template(
+        "profile.html",
+        customer=customer,
+        is_admin=current_user_is_admin()
+    )
 
 
 # ------------------------------------------------------------------ #
@@ -668,6 +739,24 @@ def api_states():
     if query:
         states = [s for s in states if query in s.lower()]
     return jsonify(states[:50])
+
+
+@app.route("/api/zip_codes")
+def api_zip_codes():
+    """Retourne les codes postaux uniques (JSON) pour l'autocomplétion."""
+    query = request.args.get("q", "").strip()
+    zip_codes = magasin.get_unique_zip_codes()
+    if query:
+        zip_codes = [z for z in zip_codes if query in z]
+    return jsonify(zip_codes[:50])
+
+
+@app.route("/api/geolocation")
+def api_geolocation():
+    """Retourne les entrées de géolocalisation (JSON) pour l'autocomplétion croisée."""
+    query = request.args.get("q", "").strip()
+    entries = magasin.get_geolocation_entries(query)
+    return jsonify(entries)
 
 
 @app.route("/api/categories")

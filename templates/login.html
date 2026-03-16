@@ -13,5 +13,10 @@
 
         <button type="submit">Se connecter</button>
     </form>
+
+    <p style="text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Pas encore de compte ?
+        <a href="{{ url_for('register') }}">Créer un compte</a>
+    </p>
 </section>
 {% endblock %}

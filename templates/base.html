@@ -30,10 +30,12 @@
                 <a href="{{ url_for('stock_list') }}">Stock</a>
             {% endif %}
 
+            <a href="{{ url_for('profile') }}">👤 Profil</a>
             <span class="nav-user">{{ user_email }}</span>
             <a href="{{ url_for('logout') }}" class="btn-logout">Déconnexion</a>
         {% else %}
             <a href="{{ url_for('login') }}">Connexion</a>
+            <a href="{{ url_for('register') }}">Créer un compte</a>
         {% endif %}
     </nav>
 </header>
@@ -160,6 +162,13 @@
             }
         }
 
+        /* Validation géolocalisation (ville, code postal, région) */
+        if ((name === "zip_code_prefix" || name === "city" || name === "state") && value !== "") {
+            if (!validateGeoField(input)) {
+                return false;
+            }
+        }
+
         markValid(input);
         return true;
     }
@@ -216,11 +225,104 @@
             });
     }
 
+    /**
+     * Cache local des entrées géolocalisation pour le remplissage croisé.
+     */
+    var geoCache = [];
+
+    function loadGeoCache() {
+        fetch("/api/geolocation")
+            .then(function (r) { return r.json(); })
+            .then(function (entries) { geoCache = entries; });
+    }
+
+    /**
+     * Remplissage croisé : quand on change un champ géo, remplir les autres.
+     */
+    function setupGeoCrossAutofill() {
+        var zipInput = document.querySelector("input[name='zip_code_prefix']");
+        var cityInput = document.querySelector("input[name='city']");
+        var stateInput = document.querySelector("input[name='state']");
+
+        if (!zipInput || !cityInput || !stateInput) return;
+
+        zipInput.addEventListener("change", function () {
+            var val = zipInput.value.trim();
+            if (!val) return;
+            var match = geoCache.find(function (e) {
+                return e.zip_code_prefix === val;
+            });
+            if (match) {
+                cityInput.value = match.city;
+                stateInput.value = match.state;
+                validateField(cityInput);
+                validateField(stateInput);
+            }
+        });
+
+        cityInput.addEventListener("change", function () {
+            var val = cityInput.value.trim().toLowerCase();
+            if (!val) return;
+            var match = geoCache.find(function (e) {
+                return e.city.toLowerCase() === val;
+            });
+            if (match) {
+                zipInput.value = match.zip_code_prefix;
+                stateInput.value = match.state;
+                validateField(zipInput);
+                validateField(stateInput);
+            }
+        });
+    }
+
+    /**
+     * Validation côté client : vérifie que la valeur existe dans la géolocalisation.
+     */
+    function validateGeoField(input) {
+        var name = input.getAttribute("name");
+        var val = input.value.trim();
+        if (!val || geoCache.length === 0) return true;
+
+        if (name === "zip_code_prefix") {
+            var found = geoCache.some(function (e) {
+                return e.zip_code_prefix === val;
+            });
+            if (!found) {
+                showError(input, "Ce code postal n'existe pas dans la base.");
+                return false;
+            }
+        }
+        if (name === "city") {
+            var foundCity = geoCache.some(function (e) {
+                return e.city.toLowerCase() === val.toLowerCase();
+            });
+            if (!foundCity) {
+                showError(input, "Cette ville n'existe pas dans la base.");
+                return false;
+            }
+        }
+        if (name === "state") {
+            var foundState = geoCache.some(function (e) {
+                return e.state.toLowerCase() === val.toLowerCase();
+            });
+            if (!foundState) {
+                showError(input, "Cette région n'existe pas dans la base.");
+                return false;
+            }
+        }
+        return true;
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         loadDatalist("cities-list", "/api/cities");
         loadDatalist("states-list", "/api/states");
+        loadDatalist("zip-codes-list", "/api/zip_codes");
         loadDatalist("categories-list", "/api/categories");
         loadDatalist("platforms-list", "/api/platforms");
+        loadGeoCache();
+
+        /* Attendre le chargement du cache géo puis activer le cross-fill */
+        setTimeout(setupGeoCrossAutofill, 500);
     });
 })();
 </script>

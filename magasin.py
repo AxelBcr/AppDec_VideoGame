@@ -183,6 +183,76 @@ class Magasin:
             .dropna().unique().tolist()
         )
 
+    def get_unique_zip_codes(self):
+        """Retourne la liste des codes postaux uniques depuis la géolocalisation."""
+        if self.geolocation.empty:
+            return []
+        return sorted(
+            self.geolocation["zip_code_prefix"]
+            .dropna().unique().astype(str).tolist()
+        )
+
+    def get_geolocation_entries(self, query=""):
+        """
+        Retourne les entrées de géolocalisation correspondant à la requête.
+        Cherche dans zip_code_prefix, city et state.
+        Retourne une liste de dicts {zip_code_prefix, city, state}.
+        """
+        if self.geolocation.empty:
+            return []
+        df = self.geolocation.copy()
+        if query:
+            q = query.lower()
+            mask = (
+                df["zip_code_prefix"].astype(str).str.contains(q, case=False, na=False)
+                | df["geolocation_city"].str.contains(q, case=False, na=False)
+                | df["geolocation_state"].str.contains(q, case=False, na=False)
+            )
+            df = df[mask]
+        result = df[["zip_code_prefix", "geolocation_city", "geolocation_state"]].drop_duplicates()
+        records = result.head(50).to_dict(orient="records")
+        return [
+            {
+                "zip_code_prefix": str(r["zip_code_prefix"]),
+                "city": r["geolocation_city"],
+                "state": r["geolocation_state"],
+            }
+            for r in records
+        ]
+
+    def validate_geolocation(self, zip_code_prefix=None, city=None, state=None):
+        """
+        Vérifie que les valeurs de ville, région et code postal existent
+        dans la table geolocation. Lève ValueError si non trouvé.
+        """
+        if self.geolocation.empty:
+            return
+
+        if zip_code_prefix is not None:
+            zcp = str(zip_code_prefix).strip()
+            if zcp and int(zcp) not in self.geolocation["zip_code_prefix"].values:
+                raise ValueError(
+                    f"Le code postal « {zcp} » n'existe pas dans la base de géolocalisation."
+                )
+
+        if city is not None:
+            city_val = city.strip()
+            if city_val:
+                cities = self.geolocation["geolocation_city"].str.lower().values
+                if city_val.lower() not in cities:
+                    raise ValueError(
+                        f"La ville « {city_val} » n'existe pas dans la base de géolocalisation."
+                    )
+
+        if state is not None:
+            state_val = state.strip()
+            if state_val:
+                states = self.geolocation["geolocation_state"].str.lower().values
+                if state_val.lower() not in states:
+                    raise ValueError(
+                        f"La région « {state_val} » n'existe pas dans la base de géolocalisation."
+                    )
+
     def get_unique_categories(self):
         """Retourne la liste des catégories de produits uniques."""
         if self.products.empty:
@@ -489,6 +559,11 @@ class Magasin:
         phone = self._check_phone_fr(phone, "Téléphone")
         zip_code_prefix = self._check_zip_code_fr(zip_code_prefix, "Code postal")
 
+        # Validation géolocalisation
+        self.validate_geolocation(
+            zip_code_prefix=zip_code_prefix, city=city, state=state
+        )
+
         if email in set(self.customers["email"]):
             raise ValueError("Un client avec cet e-mail existe déjà.")
 
@@ -527,7 +602,147 @@ class Magasin:
 
         self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
 
-    def modify_customer(self, customer_id, first_name=None, last_name=None,
+    def register_customer(self, first_name, last_name, email, password,
+                          phone, zip_code_prefix, city, state,
+                          address_line1=None, address_line2=None):
+        """Inscription d'un nouveau client (sans droits admin requis)."""
+
+        first_name = self._check_non_empty_string(first_name, "Prénom")
+        last_name = self._check_non_empty_string(last_name, "Nom")
+        email = self._check_email(email)
+        self._check_non_empty_string(password, "Mot de passe")
+        if len(password.strip()) < 4:
+            raise ValueError("Le mot de passe doit contenir au moins 4 caractères.")
+        phone = self._check_phone_fr(phone, "Téléphone")
+        zip_code_prefix = self._check_zip_code_fr(zip_code_prefix, "Code postal")
+
+        # Validation géolocalisation
+        self.validate_geolocation(
+            zip_code_prefix=zip_code_prefix, city=city, state=state
+        )
+
+        if email in set(self.customers["email"]):
+            raise ValueError("Un compte avec cet e-mail existe déjà.")
+
+        hashed_pwd = generate_password_hash(password)
+        customer_id = self._next_id(self.customers, "customer_id", "CUST_", width=6)
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        query = """
+            INSERT INTO customers
+            (customer_id, first_name, last_name, email, password_hash,
+             phone, zip_code_prefix, city, state,
+             address_line1, address_line2, is_admin,
+             registration_date, last_purchase_date,
+             total_orders, total_spent)
+            VALUES (%s, %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, 0,
+                    NOW(), NULL, 0, 0.00)
+        """
+
+        try:
+            cursor.execute(query, (
+                customer_id, first_name, last_name, email, hashed_pwd,
+                phone or "", int(zip_code_prefix), city, state,
+                address_line1 or "", address_line2 or ""
+            ))
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
+
+    def update_profile(self, customer_id, first_name=None, last_name=None,
+                       password=None, phone=None,
+                       zip_code_prefix=None, city=None, state=None,
+                       address_line1=None, address_line2=None):
+        """Permet à un utilisateur de modifier son propre profil."""
+
+        self._check_non_empty_string(customer_id, "customer_id")
+        if customer_id not in set(self.customers["customer_id"]):
+            raise ValueError("Client introuvable.")
+
+        fields = []
+        values = []
+
+        if first_name is not None:
+            first_name = self._check_non_empty_string(first_name, "Prénom")
+            fields.append("first_name = %s")
+            values.append(first_name)
+
+        if last_name is not None:
+            last_name = self._check_non_empty_string(last_name, "Nom")
+            fields.append("last_name = %s")
+            values.append(last_name)
+
+        if password is not None:
+            self._check_non_empty_string(password, "Mot de passe")
+            if len(password.strip()) < 4:
+                raise ValueError(
+                    "Le mot de passe doit contenir au moins 4 caractères."
+                )
+            fields.append("password_hash = %s")
+            values.append(generate_password_hash(password))
+
+        if phone is not None:
+            phone = self._check_phone_fr(phone, "Téléphone")
+            fields.append("phone = %s")
+            values.append(phone)
+
+        if zip_code_prefix is not None:
+            zip_code_prefix = self._check_zip_code_fr(
+                zip_code_prefix, "Code postal"
+            )
+            fields.append("zip_code_prefix = %s")
+            values.append(int(zip_code_prefix))
+
+        if city is not None:
+            fields.append("city = %s")
+            values.append(city)
+
+        if state is not None:
+            fields.append("state = %s")
+            values.append(state)
+
+        # Validation géolocalisation pour les champs modifiés
+        self.validate_geolocation(
+            zip_code_prefix=zip_code_prefix,
+            city=city,
+            state=state,
+        )
+
+        if address_line1 is not None:
+            fields.append("address_line1 = %s")
+            values.append(address_line1)
+
+        if address_line2 is not None:
+            fields.append("address_line2 = %s")
+            values.append(address_line2)
+
+        if not fields:
+            return
+
+        values.append(customer_id)
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        query = f"UPDATE customers SET {', '.join(fields)} WHERE customer_id = %s"
+
+        try:
+            cursor.execute(query, tuple(values))
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
                         email=None, password=None, phone=None,
                         zip_code_prefix=None, city=None, state=None,
                         address_line1=None, address_line2=None, is_admin=None):
@@ -582,6 +797,13 @@ class Magasin:
         if state is not None:
             fields.append("state = %s")
             values.append(state)
+
+        # Validation géolocalisation pour les champs modifiés
+        self.validate_geolocation(
+            zip_code_prefix=zip_code_prefix,
+            city=city,
+            state=state,
+        )
 
         if address_line1 is not None:
             fields.append("address_line1 = %s")
