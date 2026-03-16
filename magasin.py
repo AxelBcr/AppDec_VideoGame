@@ -12,6 +12,10 @@ from mysql.connector import errorcode
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Patterns compilés pour les validations de format français
+_PHONE_FR_RE = re.compile(r"0[1-9]\d{8}")
+_ZIP_CODE_FR_RE = re.compile(r"\d{5}")
+
 
 class Magasin:
     """Interface avec la base de données du magasin de jeux vidéo."""
@@ -139,7 +143,7 @@ class Magasin:
         if not value:
             return value
         digits = re.sub(r"[\s.\-]", "", value)
-        if not re.fullmatch(r"0[1-9]\d{8}", digits):
+        if not _PHONE_FR_RE.fullmatch(digits):
             raise ValueError(
                 f"{field_name} doit contenir 10 chiffres "
                 f"et commencer par 0 (format français)."
@@ -150,7 +154,7 @@ class Magasin:
     def _check_zip_code_fr(value, field_name="Code postal"):
         """Vérifie le format français : exactement 5 chiffres."""
         value = str(value).strip()
-        if not re.fullmatch(r"\d{5}", value):
+        if not _ZIP_CODE_FR_RE.fullmatch(value):
             raise ValueError(
                 f"{field_name} doit contenir exactement 5 chiffres "
                 f"(format français)."

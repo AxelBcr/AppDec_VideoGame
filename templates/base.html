@@ -111,7 +111,7 @@
 
         /* Téléphone français : 10 chiffres commençant par 0 */
         if (name === "phone" && value !== "") {
-            var digits = value.replace(/[\s.\-]/g, "");
+            var digits = value.replace(/[\s.-]/g, "");
             if (!/^0[1-9]\d{8}$/.test(digits)) {
                 showError(input, "Format attendu : 10 chiffres commençant par 0.");
                 return false;
@@ -166,7 +166,7 @@
 
     /* Attacher la validation sur chaque champ de formulaire */
     document.addEventListener("DOMContentLoaded", function () {
-        var forms = document.querySelectorAll("form.entity-form, form.form-container form, .form-container form");
+        var forms = document.querySelectorAll("form.entity-form, .form-container form");
         forms.forEach(function (form) {
             var inputs = form.querySelectorAll("input, select, textarea");
             inputs.forEach(function (input) {
