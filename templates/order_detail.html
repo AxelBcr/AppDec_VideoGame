@@ -189,12 +189,30 @@ function toggleEditReview() {
 
 function updateReview(data) {
     if (data.review) {
-        location.reload();
+        var r = data.review;
+        var display = document.getElementById('review-display');
+        /* Rebuild stars */
+        var starsHtml = '';
+        for (var i = 1; i <= 5; i++) {
+            starsHtml += '<span class="star ' + (i <= r.review_score ? 'star-filled' : 'star-empty') + '">★</span>';
+        }
+        starsHtml += '<span class="review-score-text">' + r.review_score + '/5</span>';
+        display.querySelector('.review-stars').innerHTML = starsHtml;
+
+        var titleEl = display.querySelector('.review-title');
+        if (titleEl) titleEl.textContent = r.review_comment_title || '';
+
+        var msgEl = display.querySelector('.review-message');
+        if (msgEl) msgEl.textContent = r.review_comment_message || '';
+
+        /* Hide edit form, show display */
+        document.getElementById('review-edit-form').style.display = 'none';
+        display.style.display = 'block';
     }
 }
 
 function showNewReview(data) {
-    if (data.review) {
+    if (data.ok) {
         location.reload();
     }
 }

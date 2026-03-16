@@ -567,6 +567,7 @@ def cart_remove(product_id):
     else:
         if is_ajax:
             return jsonify(ok=False, message="Produit non trouvé dans le panier.")
+        flash("Produit non trouvé dans le panier.", "error")
     return redirect(url_for("cart_view"))
 
 

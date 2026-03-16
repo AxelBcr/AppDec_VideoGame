@@ -1401,10 +1401,9 @@ class Magasin:
             on="customer_id", how="left"
         )
         # Joindre order_items → product (prendre le premier produit de la commande)
-        first_product = (
-            self.order_items.drop_duplicates(subset=["order_id"])
-            [["order_id", "product_id"]]
-        )
+        first_product = self.order_items.drop_duplicates(
+            subset=["order_id"]
+        )[["order_id", "product_id"]]
         df = df.merge(first_product, on="order_id", how="left")
         df = df.merge(
             self.products[["product_id", "product_name", "product_image"]],
