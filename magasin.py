@@ -170,7 +170,7 @@ class Magasin:
         if self.geolocation.empty:
             return []
         return sorted(
-            self.geolocation["geolocation_city"]
+            self.geolocation["city"]
             .dropna().unique().tolist()
         )
 
@@ -179,7 +179,7 @@ class Magasin:
         if self.geolocation.empty:
             return []
         return sorted(
-            self.geolocation["geolocation_state"]
+            self.geolocation["state"]
             .dropna().unique().tolist()
         )
 
@@ -205,17 +205,17 @@ class Magasin:
             q = query.lower()
             mask = (
                 df["zip_code_prefix"].astype(str).str.contains(q, case=False, na=False)
-                | df["geolocation_city"].str.contains(q, case=False, na=False)
-                | df["geolocation_state"].str.contains(q, case=False, na=False)
+                | df["city"].str.contains(q, case=False, na=False)
+                | df["state"].str.contains(q, case=False, na=False)
             )
             df = df[mask]
-        result = df[["zip_code_prefix", "geolocation_city", "geolocation_state"]].drop_duplicates()
+        result = df[["zip_code_prefix", "city", "state"]].drop_duplicates()
         records = result.head(50).to_dict(orient="records")
         return [
             {
                 "zip_code_prefix": str(r["zip_code_prefix"]),
-                "city": r["geolocation_city"],
-                "state": r["geolocation_state"],
+                "city": r["city"],
+                "state": r["state"],
             }
             for r in records
         ]
@@ -245,7 +245,7 @@ class Magasin:
         if city is not None:
             city_val = city.strip()
             if city_val:
-                cities = self.geolocation["geolocation_city"].str.lower().values
+                cities = self.geolocation["city"].str.lower().values
                 if city_val.lower() not in cities:
                     raise ValueError(
                         f"La ville « {city_val} » n'existe pas dans la base de géolocalisation."
@@ -254,7 +254,7 @@ class Magasin:
         if state is not None:
             state_val = state.strip()
             if state_val:
-                states = self.geolocation["geolocation_state"].str.lower().values
+                states = self.geolocation["state"].str.lower().values
                 if state_val.lower() not in states:
                     raise ValueError(
                         f"La région « {state_val} » n'existe pas dans la base de géolocalisation."
