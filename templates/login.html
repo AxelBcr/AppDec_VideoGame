@@ -15,8 +15,12 @@
     </form>
 
     <p style="text-align:center; margin-top:1rem; font-size:0.9rem;">
+        <a href="{{ url_for('forgot_password') }}">Mot de passe oublié ?</a>
+        <br>
         Pas encore de compte ?
         <a href="{{ url_for('register') }}">Créer un compte</a>
+        <br>
+        <a href="{{ url_for('contact') }}">Nous contacter</a>
     </p>
 </section>
 {% endblock %}
