@@ -106,7 +106,7 @@ def send_email(subject, recipient, text_body, html_body=None):
             smtp.send_message(msg)
         return True
     except (OSError, smtplib.SMTPException) as exc:
-        app.logger.warning("Envoi d'e-mail impossible: %s", exc)
+        app.logger.warning("Envoi d'e-mail impossible via SMTP (%s).", type(exc).__name__)
         return False
 
 
@@ -225,6 +225,7 @@ def forgot_password():
                     "expires_at": now_utc() + timedelta(minutes=30)
                 }
                 reset_link = url_for("reset_password", token=token, _external=True)
+                escaped_reset_link = html.escape(reset_link, quote=True)
                 send_email(
                     subject="Réinitialisation de votre mot de passe",
                     recipient=email,
@@ -235,7 +236,7 @@ def forgot_password():
                     ),
                     html_body=(
                         "<p>Vous avez demandé une réinitialisation de mot de passe.</p>"
-                        f"<p><a href='{reset_link}'>Réinitialiser mon mot de passe</a> "
+                        f"<p><a href='{escaped_reset_link}'>Réinitialiser mon mot de passe</a> "
                         "(lien valide 30 minutes).</p>"
                         "<p>Si vous n'êtes pas à l'origine de cette demande, "
                         "ignorez cet e-mail.</p>"
@@ -263,8 +264,8 @@ def reset_password(token):
         password = request.form.get("password", "").strip()
         password_confirm = request.form.get("password_confirm", "").strip()
 
-        if len(password) < 4:
-            flash("Le mot de passe doit contenir au moins 4 caractères.", "error")
+        if len(password) < 8:
+            flash("Le mot de passe doit contenir au moins 8 caractères.", "error")
             return render_template("reset_password.html", token=token)
         if password != password_confirm:
             flash("Les mots de passe ne correspondent pas.", "error")
@@ -299,10 +300,15 @@ def contact():
         safe_email = html.escape(email)
         safe_subject = html.escape(subject)
         safe_message = html.escape(message).replace("\n", "<br>")
+        contact_recipient = app.config.get("MAILTRAP_FROM_EMAIL")
+
+        if not contact_recipient:
+            flash("Le service de contact n'est pas configuré pour le moment.", "error")
+            return render_template("contact.html")
 
         sent = send_email(
             subject=f"[Contact AppDec] {subject}",
-            recipient=app.config.get("MAILTRAP_FROM_EMAIL", email),
+            recipient=contact_recipient,
             text_body=(
                 f"Nom: {full_name}\n"
                 f"E-mail: {email}\n"
