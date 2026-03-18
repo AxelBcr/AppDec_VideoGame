@@ -7,7 +7,7 @@ from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, abort, jsonify
 )
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 import html
 import secrets
@@ -105,8 +105,20 @@ def send_email(subject, recipient, text_body, html_body=None):
                 smtp.login(smtp_user, smtp_password)
             smtp.send_message(msg)
         return True
-    except (OSError, smtplib.SMTPException):
+    except (OSError, smtplib.SMTPException) as exc:
+        app.logger.warning("Envoi d'e-mail impossible: %s", exc)
         return False
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+def cleanup_expired_reset_tokens():
+    current = now_utc()
+    expired = [token for token, data in password_reset_tokens.items() if data["expires_at"] < current]
+    for token in expired:
+        password_reset_tokens.pop(token, None)
 
 
 # ------------------------------------------------------------------ #
@@ -202,6 +214,7 @@ def register():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
+        cleanup_expired_reset_tokens()
         email = request.form.get("email", "").strip()
         if email:
             row = magasin.customers[magasin.customers["email"] == email]
@@ -209,7 +222,7 @@ def forgot_password():
                 token = secrets.token_urlsafe(32)
                 password_reset_tokens[token] = {
                     "email": email,
-                    "expires_at": datetime.utcnow() + timedelta(minutes=30)
+                    "expires_at": now_utc() + timedelta(minutes=30)
                 }
                 reset_link = url_for("reset_password", token=token, _external=True)
                 send_email(
@@ -239,8 +252,9 @@ def forgot_password():
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
+    cleanup_expired_reset_tokens()
     token_data = password_reset_tokens.get(token)
-    if not token_data or token_data["expires_at"] < datetime.utcnow():
+    if not token_data or token_data["expires_at"] < now_utc():
         password_reset_tokens.pop(token, None)
         flash("Le lien de réinitialisation est invalide ou expiré.", "error")
         return redirect(url_for("forgot_password"))

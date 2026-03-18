@@ -25,6 +25,13 @@ def _load_mailapi_settings(file_path="MailAPI.txt"):
 _MAILAPI = _load_mailapi_settings()
 
 
+def _safe_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 class Config:
     SECRET_KEY = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
     SESSION_COOKIE_HTTPONLY = True
@@ -33,7 +40,7 @@ class Config:
     SESSION_COOKIE_SECURE = False
 
     MAILTRAP_SMTP_HOST = _MAILAPI.get("MAILTRAP_SMTP_HOST")
-    MAILTRAP_SMTP_PORT = int(_MAILAPI.get("MAILTRAP_SMTP_PORT", "587"))
+    MAILTRAP_SMTP_PORT = _safe_int(_MAILAPI.get("MAILTRAP_SMTP_PORT"), 587)
     MAILTRAP_SMTP_USERNAME = _MAILAPI.get("MAILTRAP_SMTP_USERNAME")
     MAILTRAP_SMTP_PASSWORD = _MAILAPI.get("MAILTRAP_SMTP_PASSWORD")
     MAILTRAP_SMTP_USE_TLS = _MAILAPI.get("MAILTRAP_SMTP_USE_TLS", "True").lower() == "true"

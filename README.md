@@ -967,7 +967,7 @@ export FLASK_SECRET_KEY="votre_cle_secrete_ici"
 
 ### Configuration e-mails (MailAPI.txt)
 
-Les fonctionnalites d'e-mail (welcome, mot de passe oublie, formulaire de contact) lisent automatiquement `MailAPI.txt` a la racine du projet.
+Les fonctionnalités d'e-mail (welcome, mot de passe oublié, formulaire de contact) lisent automatiquement `MailAPI.txt` à la racine du projet.
 
 Exemple de structure attendue :
 
@@ -979,7 +979,7 @@ MAILTRAP_SMTP_USERNAME=api
 MAILTRAP_SMTP_PASSWORD=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 MAILTRAP_SMTP_USE_TLS=True
 
-# --- Expediteur ---
+# --- Expéditeur ---
 MAILTRAP_FROM_NAME=AppDec VideoGame
 MAILTRAP_FROM_EMAIL=axel@bouchaudroche.fr
 ```
