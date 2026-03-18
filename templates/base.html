@@ -31,11 +31,13 @@
             {% endif %}
 
             <a href="{{ url_for('profile') }}">👤 Profil</a>
+            <a href="{{ url_for('contact') }}">Contact</a>
             <span class="nav-user">{{ user_email }}</span>
             <a href="{{ url_for('logout') }}" class="btn-logout">Déconnexion</a>
         {% else %}
             <a href="{{ url_for('login') }}">Connexion</a>
             <a href="{{ url_for('register') }}">Créer un compte</a>
+            <a href="{{ url_for('contact') }}">Contact</a>
         {% endif %}
     </nav>
 </header>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Contact – GameStore{% endblock %}
+
+{% block content %}
+<section class="form-container">
+    <h2>📩 Nous contacter</h2>
+    <form method="post" class="entity-form">
+        <label for="full_name">Nom complet</label>
+        <input type="text" name="full_name" id="full_name" required value="{{ request.form.get('full_name', '') }}">
+
+        <label for="email">E-mail</label>
+        <input type="email" name="email" id="email" required autocomplete="email" value="{{ request.form.get('email', '') }}">
+
+        <label for="subject">Sujet</label>
+        <input type="text" name="subject" id="subject" required value="{{ request.form.get('subject', '') }}">
+
+        <label for="message">Message</label>
+        <textarea name="message" id="message" rows="6" required>{{ request.form.get('message', '') }}</textarea>
+
+        <button type="submit">Envoyer le message</button>
+    </form>
+</section>
+{% endblock %}

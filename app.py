@@ -7,6 +7,11 @@ from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, abort, jsonify
 )
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+import html
+import secrets
+import smtplib
 from config import Config
 from magasin import Magasin
 
@@ -18,6 +23,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 magasin = Magasin()
+password_reset_tokens = {}
 
 
 # ------------------------------------------------------------------ #
@@ -67,6 +73,52 @@ def get_cart():
 def save_cart(cart):
     session["cart"] = cart
     session.modified = True
+
+
+def send_email(subject, recipient, text_body, html_body=None):
+    """Envoie un e-mail via SMTP (Mailtrap)."""
+    smtp_host = app.config.get("MAILTRAP_SMTP_HOST")
+    smtp_port = app.config.get("MAILTRAP_SMTP_PORT")
+    smtp_user = app.config.get("MAILTRAP_SMTP_USERNAME")
+    smtp_password = app.config.get("MAILTRAP_SMTP_PASSWORD")
+    from_email = app.config.get("MAILTRAP_FROM_EMAIL")
+    from_name = app.config.get("MAILTRAP_FROM_NAME", "AppDec VideoGame")
+
+    if not (smtp_host and smtp_port and from_email):
+        return False
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"{from_name} <{from_email}>"
+    msg["To"] = recipient
+    msg.set_content(text_body)
+
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
+
+    use_tls = app.config.get("MAILTRAP_SMTP_USE_TLS", True)
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+            if use_tls:
+                smtp.starttls()
+            if smtp_user and smtp_password:
+                smtp.login(smtp_user, smtp_password)
+            smtp.send_message(msg)
+        return True
+    except (OSError, smtplib.SMTPException) as exc:
+        app.logger.warning("Envoi d'e-mail impossible via SMTP (%s).", type(exc).__name__)
+        return False
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+def cleanup_expired_reset_tokens():
+    current = now_utc()
+    expired = [token for token, data in password_reset_tokens.items() if data["expires_at"] < current]
+    for token in expired:
+        password_reset_tokens.pop(token, None)
 
 
 # ------------------------------------------------------------------ #
@@ -119,11 +171,14 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        email = request.form.get("email", "").strip()
         try:
             magasin.register_customer(
-                request.form.get("first_name", "").strip(),
-                request.form.get("last_name", "").strip(),
-                request.form.get("email", "").strip(),
+                first_name,
+                last_name,
+                email,
                 request.form.get("password", "").strip(),
                 request.form.get("phone", "").strip(),
                 request.form.get("zip_code_prefix", "").strip(),
@@ -132,12 +187,147 @@ def register():
                 request.form.get("address_line1", "").strip(),
                 request.form.get("address_line2", "").strip(),
             )
+            send_email(
+                subject="Bienvenue sur AppDec VideoGame 🎮",
+                recipient=email,
+                text_body=(
+                    f"Bonjour {first_name} {last_name},\n\n"
+                    "Bienvenue sur AppDec VideoGame ! "
+                    "Votre compte a bien été créé.\n\n"
+                    "À très vite sur la boutique."
+                ),
+                html_body=(
+                    f"<p>Bonjour <strong>{html.escape(first_name)} {html.escape(last_name)}</strong>,</p>"
+                    "<p>Bienvenue sur <strong>AppDec VideoGame</strong> ! "
+                    "Votre compte a bien été créé.</p>"
+                    "<p>À très vite sur la boutique.</p>"
+                )
+            )
             flash("Compte créé avec succès ! Vous pouvez maintenant vous connecter.", "success")
             return redirect(url_for("login"))
         except ValueError as e:
             flash(str(e), "error")
 
     return render_template("register.html")
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        cleanup_expired_reset_tokens()
+        email = request.form.get("email", "").strip()
+        if email:
+            row = magasin.customers[magasin.customers["email"] == email]
+            if not row.empty:
+                token = secrets.token_urlsafe(32)
+                password_reset_tokens[token] = {
+                    "email": email,
+                    "expires_at": now_utc() + timedelta(minutes=30)
+                }
+                reset_link = url_for("reset_password", token=token, _external=True)
+                escaped_reset_link = html.escape(reset_link, quote=True)
+                send_email(
+                    subject="Réinitialisation de votre mot de passe",
+                    recipient=email,
+                    text_body=(
+                        "Vous avez demandé une réinitialisation de mot de passe.\n\n"
+                        f"Cliquez sur ce lien (valide 30 minutes) :\n{reset_link}\n\n"
+                        "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail."
+                    ),
+                    html_body=(
+                        "<p>Vous avez demandé une réinitialisation de mot de passe.</p>"
+                        f"<p><a href='{escaped_reset_link}'>Réinitialiser mon mot de passe</a> "
+                        "(lien valide 30 minutes).</p>"
+                        "<p>Si vous n'êtes pas à l'origine de cette demande, "
+                        "ignorez cet e-mail.</p>"
+                    )
+                )
+        flash(
+            "Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé.",
+            "info"
+        )
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    cleanup_expired_reset_tokens()
+    token_data = password_reset_tokens.get(token)
+    if not token_data or token_data["expires_at"] < now_utc():
+        password_reset_tokens.pop(token, None)
+        flash("Le lien de réinitialisation est invalide ou expiré.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "").strip()
+        password_confirm = request.form.get("password_confirm", "").strip()
+
+        if len(password) < 8:
+            flash("Le mot de passe doit contenir au moins 8 caractères.", "error")
+            return render_template("reset_password.html", token=token)
+        if password != password_confirm:
+            flash("Les mots de passe ne correspondent pas.", "error")
+            return render_template("reset_password.html", token=token)
+
+        try:
+            updated = magasin.reset_password_by_email(token_data["email"], password)
+            password_reset_tokens.pop(token, None)
+            if updated:
+                flash("Votre mot de passe a été réinitialisé avec succès.", "success")
+                return redirect(url_for("login"))
+            flash("Impossible de réinitialiser ce mot de passe.", "error")
+        except ValueError as e:
+            flash(str(e), "error")
+
+    return render_template("reset_password.html", token=token)
+
+
+@app.route("/contact", methods=["GET", "POST"])
+def contact():
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        email = request.form.get("email", "").strip()
+        subject = request.form.get("subject", "").strip()
+        message = request.form.get("message", "").strip()
+
+        if not full_name or not email or not subject or not message:
+            flash("Veuillez remplir tous les champs du formulaire de contact.", "error")
+            return render_template("contact.html")
+
+        safe_full_name = html.escape(full_name)
+        safe_email = html.escape(email)
+        safe_subject = html.escape(subject)
+        safe_message = html.escape(message).replace("\n", "<br>")
+        contact_recipient = app.config.get("MAILTRAP_FROM_EMAIL")
+
+        if not contact_recipient:
+            flash("Le service de contact n'est pas configuré pour le moment.", "error")
+            return render_template("contact.html")
+
+        sent = send_email(
+            subject=f"[Contact AppDec] {subject}",
+            recipient=contact_recipient,
+            text_body=(
+                f"Nom: {full_name}\n"
+                f"E-mail: {email}\n"
+                f"Sujet: {subject}\n\n"
+                f"Message:\n{message}"
+            ),
+            html_body=(
+                f"<p><strong>Nom :</strong> {safe_full_name}<br>"
+                f"<strong>E-mail :</strong> {safe_email}<br>"
+                f"<strong>Sujet :</strong> {safe_subject}</p>"
+                f"<p><strong>Message :</strong><br>{safe_message}</p>"
+            )
+        )
+        if sent:
+            flash("Votre message a bien été envoyé.", "success")
+            return redirect(url_for("contact"))
+        flash("Impossible d'envoyer votre message pour le moment.", "error")
+
+    return render_template("contact.html")
 
 
 @app.route("/logout")

@@ -965,6 +965,25 @@ Pour definir une cle secrete persistante, utiliser la variable d'environnement :
 export FLASK_SECRET_KEY="votre_cle_secrete_ici"
 ```
 
+### Configuration e-mails (MailAPI.txt)
+
+Les fonctionnalités d'e-mail (welcome, mot de passe oublié, formulaire de contact) lisent automatiquement `MailAPI.txt` à la racine du projet.
+
+Exemple de structure attendue :
+
+```ini
+# --- SMTP Production (Flask-Mail / smtplib) ---
+MAILTRAP_SMTP_HOST=live.smtp.mailtrap.io
+MAILTRAP_SMTP_PORT=587
+MAILTRAP_SMTP_USERNAME=api
+MAILTRAP_SMTP_PASSWORD=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+MAILTRAP_SMTP_USE_TLS=True
+
+# --- Expéditeur ---
+MAILTRAP_FROM_NAME=AppDec VideoGame
+MAILTRAP_FROM_EMAIL=axel@bouchaudroche.fr
+```
+
 ---
 
 ## Utilisation

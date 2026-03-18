@@ -846,6 +846,31 @@ class Magasin:
 
         self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
 
+    def reset_password_by_email(self, email, new_password):
+        """Réinitialise le mot de passe d'un client via son e-mail."""
+        email = self._check_email(email)
+        self._check_non_empty_string(new_password, "Mot de passe")
+
+        row = self.customers[self.customers["email"] == email]
+        if row.empty:
+            return False
+
+        self._ensure_connection()
+        cursor = self.connection.cursor()
+        query = "UPDATE customers SET password_hash = %s WHERE email = %s"
+
+        try:
+            cursor.execute(query, (generate_password_hash(new_password), email))
+            self.connection.commit()
+        except mysql.connector.Error as err:
+            self.connection.rollback()
+            raise ValueError(f"Erreur MySQL : {err}")
+        finally:
+            cursor.close()
+
+        self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
+        return True
+
     def del_customer(self, customer_id):
         """Supprime un client."""
 
