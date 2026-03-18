@@ -33,17 +33,18 @@ Flask / MySQL / Pandas
 <summary>Afficher / Masquer</summary>
 
 1. [Presentation du projet](#presentation-du-projet)
-2. [Fonctionnalites](#fonctionnalites)
-3. [Architecture technique](#architecture-technique)
-4. [Structure du projet](#structure-du-projet)
-5. [Modele de donnees](#modele-de-donnees)
-6. [Routes et API](#routes-et-api)
-7. [Couche metier](#couche-metier)
-8. [Templates et interface](#templates-et-interface)
-9. [Installation et configuration](#installation-et-configuration)
-10. [Utilisation](#utilisation)
-11. [Securite](#securite)
-12. [Documentation complementaire](#documentation-complementaire)
+2. [Dernieres avancees](#dernieres-avancees)
+3. [Fonctionnalites](#fonctionnalites)
+4. [Architecture technique](#architecture-technique)
+5. [Structure du projet](#structure-du-projet)
+6. [Modele de donnees](#modele-de-donnees)
+7. [Routes et API](#routes-et-api)
+8. [Couche metier](#couche-metier)
+9. [Templates et interface](#templates-et-interface)
+10. [Installation et configuration](#installation-et-configuration)
+11. [Utilisation](#utilisation)
+12. [Securite](#securite)
+13. [Documentation complementaire](#documentation-complementaire)
 
 </details>
 
@@ -60,6 +61,18 @@ L'application repose sur une architecture **MVC** avec :
 - **`config.py`** -- configuration applicative
 
 Le projet est entierement redige en **francais** (interface utilisateur, commentaires, noms de variables).
+
+---
+
+## Dernieres avancees
+
+Les evolutions recentes du projet portent sur la robustesse fonctionnelle et la qualite operationnelle :
+
+- **Recuperation de mot de passe securisee** : ajout des routes `/forgot-password` et `/reset-password/<token>` avec expiration des tokens (24h).
+- **Canal de contact integre** : formulaire public `/contact` avec envoi email SMTP et echappement des contenus saisis.
+- **Segmentation client automatisee** : recalcul de `total_orders`, `total_spent`, `last_purchase_date` et `customer_segment` apres creation de commande ou changement de statut.
+- **Validation geographique renforcee** : controles ville/departement/code postal centralises et appliques aux parcours d'inscription et de modification client.
+- **Gestion des comptes plus sure** : suppression client avec traitement explicite des dependances de commandes pour respecter l'integrite referentielle.
 
 ---
 
@@ -122,7 +135,7 @@ Le projet est entierement redige en **francais** (interface utilisateur, comment
 </tr>
 <tr>
 <td><strong>Gestion des clients</strong></td>
-<td>Consultation, ajout, modification et suppression de comptes clients. Segmentation automatique (premium, regular, casual, vip).</td>
+<td>Consultation, ajout, modification et suppression de comptes clients. Segmentation automatique (nouveau, casual, regular, premium, vip) basee sur les achats.</td>
 </tr>
 <tr>
 <td><strong>Gestion des commandes</strong></td>
@@ -189,7 +202,7 @@ Le projet est entierement redige en **francais** (interface utilisateur, comment
 <td>Hachage</td>
 <td>Werkzeug</td>
 <td>3.0+</td>
-<td>Hachage bcrypt des mots de passe</td>
+<td>Hachage des mots de passe via `generate_password_hash`</td>
 </tr>
 <tr>
 <td>Serveur WSGI</td>
@@ -327,7 +340,7 @@ geolocation ─────┬──────── customers ─────
 | `first_name` | `VARCHAR(100)` | Prenom |
 | `last_name` | `VARCHAR(100)` | Nom |
 | `email` | `VARCHAR(255)` | Adresse email (unique) |
-| `password_hash` | `VARCHAR(255)` | Mot de passe hache (bcrypt) |
+| `password_hash` | `VARCHAR(255)` | Mot de passe hache (Werkzeug `generate_password_hash`) |
 | `is_admin` | `TINYINT(1)` | Role administrateur (0 ou 1) |
 | `phone` | `VARCHAR(20)` | Telephone (format FR) |
 | `zip_code_prefix` | `INT` | Code postal (FK geolocation) |
@@ -335,7 +348,7 @@ geolocation ─────┬──────── customers ─────
 | `state` | `VARCHAR(50)` | Departement |
 | `address_line1` | `VARCHAR(255)` | Adresse ligne 1 |
 | `address_line2` | `VARCHAR(255)` | Adresse ligne 2 |
-| `customer_segment` | `VARCHAR(50)` | Segment (premium, regular, casual, vip) |
+| `customer_segment` | `VARCHAR(50)` | Segment (nouveau, casual, regular, premium, vip) |
 | `registration_date` | `DATETIME` | Date d'inscription |
 | `last_purchase_date` | `DATETIME` | Dernier achat |
 | `total_orders` | `INT` | Nombre total de commandes |
@@ -497,6 +510,24 @@ Contrainte d'unicite : `(seller_id, product_id)`
 <td><code>/register</code></td>
 <td>Public</td>
 <td>Inscription d'un nouveau client</td>
+</tr>
+<tr>
+<td><code>GET</code> <code>POST</code></td>
+<td><code>/forgot-password</code></td>
+<td>Public</td>
+<td>Demande de reinitialisation de mot de passe</td>
+</tr>
+<tr>
+<td><code>GET</code> <code>POST</code></td>
+<td><code>/reset-password/&lt;token&gt;</code></td>
+<td>Public</td>
+<td>Reinitialisation du mot de passe avec token temporaire</td>
+</tr>
+<tr>
+<td><code>GET</code> <code>POST</code></td>
+<td><code>/contact</code></td>
+<td>Public</td>
+<td>Formulaire de contact avec envoi email</td>
 </tr>
 <tr>
 <td><code>GET</code></td>
@@ -730,7 +761,7 @@ La classe `Magasin` dans `magasin.py` encapsule toute la logique metier et l'acc
 
 | Methode | Description |
 |---|---|
-| `magasin_login(email, password)` | Verification des identifiants avec comparaison bcrypt |
+| `magasin_login(email, password)` | Verification des identifiants avec `check_password_hash` |
 | `check_is_admin(email)` | Verification du role administrateur |
 | `register_customer(...)` | Inscription avec generation d'identifiant et validation |
 | `add_customer(...)` | Ajout d'un client par l'administrateur |
@@ -1109,7 +1140,7 @@ Les donnees de test incluent des comptes pre-configures. L'administrateur princi
 <tbody>
 <tr>
 <td>Hachage des mots de passe</td>
-<td>Werkzeug <code>generate_password_hash</code> / <code>check_password_hash</code> (bcrypt)</td>
+<td>Werkzeug <code>generate_password_hash</code> / <code>check_password_hash</code> (scrypt par defaut)</td>
 </tr>
 <tr>
 <td>Protection XSS</td>
@@ -1137,7 +1168,7 @@ Les donnees de test incluent des comptes pre-configures. L'administrateur princi
 </tr>
 <tr>
 <td>Integrite referentielle</td>
-<td>Cles etrangeres avec suppression en cascade sur les commandes</td>
+<td>Suppression controlee des dependances de commandes avant suppression client, puis suppression en cascade des elements lies</td>
 </tr>
 </tbody>
 </table>
