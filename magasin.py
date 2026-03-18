@@ -422,6 +422,14 @@ class Magasin:
         self._ensure_connection()
         cursor = self.connection.cursor()
         try:
+            cursor.execute(
+                "SELECT 1 FROM order_items WHERE product_id = %s LIMIT 1",
+                (product_id,)
+            )
+            if cursor.fetchone():
+                raise ValueError(
+                    "Impossible de supprimer ce produit : il est lié à des commandes."
+                )
             cursor.execute("DELETE FROM stock WHERE product_id = %s", (product_id,))
             cursor.execute("DELETE FROM products WHERE product_id = %s", (product_id,))
             self.connection.commit()
@@ -884,6 +892,7 @@ class Magasin:
         self._ensure_connection()
         cursor = self.connection.cursor()
         try:
+            cursor.execute("DELETE FROM orders WHERE customer_id = %s", (customer_id,))
             cursor.execute("DELETE FROM customers WHERE customer_id = %s", (customer_id,))
             self.connection.commit()
         except mysql.connector.Error as err:
@@ -893,6 +902,10 @@ class Magasin:
             cursor.close()
 
         self.customers = pd.read_sql("SELECT * FROM customers", self.connection)
+        self.orders = pd.read_sql("SELECT * FROM orders", self.connection)
+        self.order_items = pd.read_sql("SELECT * FROM order_items", self.connection)
+        self.order_payments = pd.read_sql("SELECT * FROM order_payments", self.connection)
+        self.order_reviews = pd.read_sql("SELECT * FROM order_reviews", self.connection)
 
     # ------------------------------------------------------------------ #
     #  Filtres Clients
