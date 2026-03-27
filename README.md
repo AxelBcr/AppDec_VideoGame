@@ -36,31 +36,31 @@
 <details>
 <summary>Afficher / Masquer</summary>
 
-### Essentiel
+### Présentation
 1. [Presentation du projet](#presentation-du-projet)
-2. [Demarrage rapide](#demarrage-rapide)
-3. [Installation et configuration](#installation-et-configuration)
+2. [Dernieres avancees](#dernieres-avancees)
 
-### Fonctionnalites et Documentation
-4. [Fonctionnalites](#fonctionnalites)
-5. [Architecture technique](#architecture-technique)
-6. [Structure du projet](#structure-du-projet)
-7. [Modele de donnees](#modele-de-donnees)
-8. [Routes et API](#routes-et-api)
-9. [Couche metier](#couche-metier)
-10. [Templates et interface](#templates-et-interface)
+### Installation
+3. [Demarrage rapide](#demarrage-rapide)
+4. [Installation et configuration](#installation-et-configuration)
 
-### Utilisation et Avancees
-11. [Utilisation](#utilisation)
-12. [Dernieres avancees](#dernieres-avancees)
-13. [Roadmap et evolutions](#roadmap-et-evolutions)
+### Fonctionnalites et Architecture
+5. [Fonctionnalites](#fonctionnalites)
+6. [Architecture technique](#architecture-technique)
+7. [Structure du projet](#structure-du-projet)
+8. [Modele de donnees](#modele-de-donnees)
+9. [Routes et API](#routes-et-api)
+10. [Couche metier](#couche-metier)
+11. [Templates et interface](#templates-et-interface)
+
+### Utilisation
+12. [Utilisation](#utilisation)
 
 ### Securite et Support
-14. [Securite](#securite)
-15. [Contribution](#contribution)
-16. [Support et contact](#support-et-contact)
-17. [Documentation complementaire](#documentation-complementaire)
-18. [License](#license)
+13. [Securite](#securite)
+14. [Support et contact](#support-et-contact)
+15. [Documentation complementaire](#documentation-complementaire)
+16. [License](#license)
 
 </details>
 
@@ -123,44 +123,6 @@ Le projet est entièrement rédigé en **français** (interface, commentaires, n
 
 ---
 
-## Demarrage rapide
-
-### Requirements
-
-- **Python** 3.10+
-- **MySQL** 8.x
-- **pip** (gestionnaire de paquets)
-
-### Installation rapide (5 minutes)
-
-```bash
-# 1. Cloner le depot
-git clone https://github.com/AxelBcr/AppDec_VideoGame.git
-cd AppDec_VideoGame
-
-# 2. Installer les dependances
-pip install -r requirements.txt
-
-# 3. Configurer la base de donnees (creer fichier logs.py a la racine)
-# host = "localhost"
-# port = 3306
-# user = "votre_utilisateur"
-# password = "votre_mot_de_passe"
-# database = "magasin_jeux_video"
-
-# 4. Initialiser le schema MySQL
-mysql -u votre_utilisateur -p magasin_jeux_video < docs/magasin_jeux_video.sql
-
-# 5. Lancer l'application
-python app.py
-```
-
-L'application sera accessible sur **`http://localhost:5000`**
-
-Pour la configuration détaillée, voir [Installation et configuration](#installation-et-configuration).
-
----
-
 ## Dernieres avancees
 
 Les évolutions récentes du projet portent sur la **robustesse fonctionnelle** et la **qualité opérationnelle** :
@@ -202,6 +164,44 @@ Les évolutions récentes du projet portent sur la **robustesse fonctionnelle** 
 - Restauration automatique du stock lors d'annulation de commande
 - Respect de l'intégrité référentielle (contraintes MySQL)
 - Audit des modifications (via statut et timestamps)
+
+---
+
+## Demarrage rapide
+
+### Requirements
+
+- **Python** 3.10+
+- **MySQL** 8.x
+- **pip** (gestionnaire de paquets)
+
+### Installation rapide (5 minutes)
+
+```bash
+# 1. Cloner le depot
+git clone https://github.com/AxelBcr/AppDec_VideoGame.git
+cd AppDec_VideoGame
+
+# 2. Installer les dependances
+pip install -r requirements.txt
+
+# 3. Configurer la base de donnees (creer fichier logs.py a la racine)
+# host = "localhost"
+# port = 3306
+# user = "votre_utilisateur"
+# password = "votre_mot_de_passe"
+# database = "magasin_jeux_video"
+
+# 4. Initialiser le schema MySQL
+mysql -u votre_utilisateur -p magasin_jeux_video < docs/magasin_jeux_video.sql
+
+# 5. Lancer l'application
+python app.py
+```
+
+L'application sera accessible sur **`http://localhost:5000`**
+
+Pour la configuration détaillée, voir [Installation et configuration](#installation-et-configuration).
 
 ---
 
@@ -1455,36 +1455,6 @@ Ce processus inclut la validation des métadonnées, l'upload de l'image, la con
 | **Validation des entrées** | Contrôles sur email, téléphone (FR), code postal, prix, quantités | Excellent |
 | **Intégrité référentielle** | Suppression contrôlée des dépendances (commandes → client) | Excellent |
 | **Tokens expirables** | Réinitialisation de mot de passe avec token (expiration 24h) | Bon |
-
-### Bonnes pratiques appliquées
-
-**Authentification**
-- Sessions sécurisées avec cookies HTTPOnly
-- Protection contre le rejeu d'attaques
-
-**Base de données**
-- Requêtes paramétrées (pas de concaténation de chaînes)
-- Contraintes d'intégrité référentielle
-- Validation des données avant insertion
-
-**Frontend**
-- Validation côté client pour l'expérience utilisateur
-- Validation côté serveur pour la sécurité
-- Échappement HTML dans les templates Jinja2
-
-**Déploiement**
-- Secrets en variables d'environnement
-- HTTPS recommandé en production
-- `DEBUG = False` obligatoire en production
-
-**OWASP Top 10 adressé :**
-- Injection SQL : requêtes paramétrées
-- XSS : échappement Jinja2 automatique
-- CSRF : cookies SameSite
-- Authentification faible : Werkzeug scrypt
-- Contrôle d'accès défaillant : RBAC client/admin
-
-Pour rapporter une **vulnérabilité de sécurité**, ne créez pas d'issue publique. Contactez les mainteneurs directement via email ou consultez [SECURITY.md](SECURITY.md).
 
 ---
 
